@@ -8,4 +8,8 @@ public interface AuthInterface extends Remote {
     String login(String email, String password) throws RemoteException;
 
     String getRole(String uid) throws RemoteException;
+
+    // HR Operations
+    String addEmployee(String email, String password, String firstName, String lastName, String icPassport, String role)
+            throws RemoteException;
 }
