@@ -37,6 +37,14 @@ public class RMIClient {
                 return;
             }
 
+            // Get role from Firestore
+            String role = authService.getRole(uid);
+
+            if (role == null) {
+                System.out.println("Login Failed! Role not found.");
+                return;
+            }
+
             // Login successful
             System.out.println();
             System.out.println("========================================");
@@ -44,6 +52,7 @@ public class RMIClient {
             System.out.println("========================================");
             System.out.println("Email: " + email);
             System.out.println("UID: " + uid);
+            System.out.println("Role: " + role);
             System.out.println("========================================");
 
         } catch (Exception e) {
