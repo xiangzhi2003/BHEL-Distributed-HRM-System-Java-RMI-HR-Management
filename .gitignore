@@ -1,0 +1,19 @@
+# Sensitive files - NEVER COMMIT
+serviceAccountKey.json
+
+# Build outputs
+target/
+*.class
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+nul
+
+# Claude workspace
+.claude/
