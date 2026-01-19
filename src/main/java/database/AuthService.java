@@ -61,6 +61,29 @@ public class AuthService {
         }
     }
 
+    // Get role from Firestore
+    public String getRole(String uid) {
+        try {
+            URL url = new URL(FIRESTORE_URL + "/users/" + uid);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                JsonObject fields = json.getAsJsonObject("fields");
+                if (fields != null && fields.has("role")) {
+                    return fields.getAsJsonObject("role").get("stringValue").getAsString();
+                }
+            }
+            return null;
+
+        } catch (Exception e) {
+            System.out.println("Firestore Error: " + e.getMessage());
+            return null;
+        }
+    }
+
     // Helper methods
     private String readResponse(HttpURLConnection conn) throws Exception {
         BufferedReader reader = new BufferedReader(
