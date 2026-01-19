@@ -84,6 +84,40 @@ public class AuthService {
         }
     }
 
+    // Add employee to Firebase Auth
+    public String addEmployee(String email, String password, String firstName, String lastName, String icPassport,
+            String role) {
+        try {
+            // Create user in Firebase Auth
+            URL url = new URL(AUTH_SIGNUP_URL);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            JsonObject body = new JsonObject();
+            body.addProperty("email", email);
+            body.addProperty("password", password);
+            body.addProperty("returnSecureToken", true);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(body.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                String uid = json.get("localId").getAsString();
+                return "Employee added successfully! UID: " + uid;
+            } else {
+                return "Failed to add employee.";
+            }
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
     // Helper methods
     private String readResponse(HttpURLConnection conn) throws Exception {
         BufferedReader reader = new BufferedReader(
