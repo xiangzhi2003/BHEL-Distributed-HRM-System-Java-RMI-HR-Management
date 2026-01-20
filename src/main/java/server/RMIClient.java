@@ -1,5 +1,7 @@
 package server;
 
+import hr.HRMenu;
+
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
@@ -54,6 +56,14 @@ public class RMIClient {
             System.out.println("UID: " + uid);
             System.out.println("Role: " + role);
             System.out.println("========================================");
+            System.out.println();
+
+            // Redirect based on role
+            if ("hr".equalsIgnoreCase(role)) {
+                HRMenu.show(scanner, uid, email);
+            } else {
+                System.out.println("Unknown role: " + role);
+            }
 
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
