@@ -83,6 +83,12 @@ public class HRMenu {
             System.out.print("Email: ");
             String email = scanner.nextLine();
 
+            // Validate email must be @gmail.com
+            if (!email.toLowerCase().endsWith("@gmail.com")) {
+                System.out.println("\nError: Only Gmail accounts are allowed. Please use @gmail.com");
+                return;
+            }
+
             System.out.print("Password: ");
             String password = scanner.nextLine();
 

@@ -157,7 +157,18 @@ public class AuthService {
                     return "Auth created but Firestore failed.";
                 }
             } else {
-                return "Failed to add employee.";
+                String error = readErrorResponse(conn);
+
+                // Parse error and show user-friendly message
+                if (error.contains("EMAIL_EXISTS")) {
+                    return "Email already exists. Please try another email.";
+                } else if (error.contains("INVALID_EMAIL")) {
+                    return "Invalid email format. Please enter a valid email.";
+                } else if (error.contains("WEAK_PASSWORD")) {
+                    return "Password is too weak. Please use at least 6 characters.";
+                } else {
+                    return "Failed to add employee. Please try again.";
+                }
             }
 
         } catch (Exception e) {
@@ -447,6 +458,18 @@ public class AuthService {
     private String readResponse(HttpURLConnection conn) throws Exception {
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+        StringBuilder response = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
+        }
+        reader.close();
+        return response.toString();
+    }
+
+    private String readErrorResponse(HttpURLConnection conn) throws Exception {
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
         StringBuilder response = new StringBuilder();
         String line;
         while ((line = reader.readLine()) != null) {
