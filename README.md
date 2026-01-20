@@ -134,6 +134,20 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 └── Year_Entry: string ("2024")
 ```
 
+### Leaves Collection
+```
+/Leaves/{leave_id}
+├── leave_id: string
+├── userid: string
+├── leave_type: string ("annual" | "emergency" | "medical")
+├── start_date: string
+├── end_date: string
+├── total_days: number
+├── reason: string
+├── status: string ("pending" | "approved" | "rejected")
+└── date_created_at: timestamp
+```
+
 ---
 
 ## Technology Stack
