@@ -25,7 +25,8 @@ public class EmployeeMenu {
             boolean running = true;
             while (running) {
                 System.out.println("1. View My Profile");
-                System.out.println("2. Logout");
+                System.out.println("2. View My Payroll");
+                System.out.println("3. Logout");
                 System.out.println("----------------------------------------");
                 System.out.print("Choice: ");
 
@@ -36,6 +37,9 @@ public class EmployeeMenu {
                         viewProfile(uid);
                         break;
                     case "2":
+                        viewMyPayroll(uid);
+                        break;
+                    case "3":
                         running = false;
                         System.out.println("\nLogged out. Goodbye!");
                         break;
@@ -53,6 +57,15 @@ public class EmployeeMenu {
         try {
             String profile = authService.getEmployeeByUid(uid);
             System.out.println("\n" + profile + "\n");
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void viewMyPayroll(String uid) {
+        try {
+            String payroll = authService.getPayrollByUserId(uid);
+            System.out.println("\n" + payroll + "\n");
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
         }
