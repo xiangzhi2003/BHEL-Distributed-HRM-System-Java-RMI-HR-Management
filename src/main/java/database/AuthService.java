@@ -259,6 +259,15 @@ public class AuthService {
     public boolean deleteEmployee(String uid) {
         boolean firestoreDeleted = false;
         boolean authDeleted = false;
+        boolean payrollDeleted = false;
+
+        // First, delete all payroll entries for this employee
+        try {
+            payrollDeleted = deletePayrollByUserId(uid);
+            System.out.println("Payroll entries delete: " + (payrollDeleted ? "Success" : "No entries or failed"));
+        } catch (Exception e) {
+            System.out.println("Payroll Delete Error: " + e.getMessage());
+        }
 
         // Delete from Firestore
         try {
@@ -286,6 +295,49 @@ public class AuthService {
         }
 
         return firestoreDeleted && authDeleted;
+    }
+
+    // Delete all payroll entries for a specific user
+    private boolean deletePayrollByUserId(String userId) {
+        try {
+            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+                    int deletedCount = 0;
+
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String docUserId = getField(fields, "userid");
+                        if (userId.equals(docUserId)) {
+                            // Get payroll ID from document name
+                            String name = docObj.get("name").getAsString();
+                            String payrollId = name.substring(name.lastIndexOf("/") + 1);
+
+                            // Delete this payroll entry
+                            if (deletePayroll(payrollId)) {
+                                deletedCount++;
+                            }
+                        }
+                    }
+                    System.out.println("Deleted " + deletedCount + " payroll entries for user " + userId);
+                    return true;
+                }
+            }
+            return true; // No documents to delete is also success
+
+        } catch (Exception e) {
+            System.out.println("Delete Payroll By User Error: " + e.getMessage());
+            return false;
+        }
     }
 
     // Update employee in Firestore (delete and recreate to avoid PATCH issues)
