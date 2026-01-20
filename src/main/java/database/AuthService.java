@@ -84,11 +84,11 @@ public class AuthService {
         }
     }
 
-    // Add employee to Firebase Auth
+    // Add employee to Firebase Auth and Firestore
     public String addEmployee(String email, String password, String firstName, String lastName, String icPassport,
             String role) {
         try {
-            // Create user in Firebase Auth
+            // Step 1: Create user in Firebase Auth
             URL url = new URL(AUTH_SIGNUP_URL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
@@ -108,7 +108,15 @@ public class AuthService {
                 String response = readResponse(conn);
                 JsonObject json = JsonParser.parseString(response).getAsJsonObject();
                 String uid = json.get("localId").getAsString();
-                return "Employee added successfully! UID: " + uid;
+
+                // Step 2: Add user data to Firestore
+                boolean firestoreSuccess = addUserToFirestore(uid, email, firstName, lastName, icPassport, role);
+
+                if (firestoreSuccess) {
+                    return "Employee added successfully! UID: " + uid;
+                } else {
+                    return "Auth created but Firestore failed.";
+                }
             } else {
                 return "Failed to add employee.";
             }
@@ -118,7 +126,46 @@ public class AuthService {
         }
     }
 
+    // Add user data to Firestore
+    private boolean addUserToFirestore(String uid, String email, String firstName, String lastName, String icPassport,
+            String role) {
+        try {
+            URL url = new URL(FIRESTORE_URL + "/users?documentId=" + uid);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            JsonObject fields = new JsonObject();
+            fields.add("email", stringValue(email));
+            fields.add("first_name", stringValue(firstName));
+            fields.add("last_name", stringValue(lastName));
+            fields.add("ic_passport", stringValue(icPassport));
+            fields.add("role", stringValue(role));
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", fields);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = conn.getResponseCode();
+            return code == 200 || code == 201;
+
+        } catch (Exception e) {
+            System.out.println("Firestore Error: " + e.getMessage());
+            return false;
+        }
+    }
+
     // Helper methods
+    private JsonObject stringValue(String value) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("stringValue", value);
+        return obj;
+    }
+
     private String readResponse(HttpURLConnection conn) throws Exception {
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
