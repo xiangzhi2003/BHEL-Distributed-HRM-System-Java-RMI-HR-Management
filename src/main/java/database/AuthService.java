@@ -403,4 +403,331 @@ public class AuthService {
         reader.close();
         return response.toString();
     }
+
+    // Helper method for double values
+    private JsonObject doubleValue(double value) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("doubleValue", value);
+        return obj;
+    }
+
+    // Get month name from month number
+    private String getMonthName(String month) {
+        String[] months = { "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December" };
+        try {
+            int m = Integer.parseInt(month);
+            if (m >= 1 && m <= 12) {
+                return months[m - 1];
+            }
+        } catch (NumberFormatException e) {
+            // ignore
+        }
+        return month;
+    }
+
+    // Add payroll entry
+    public String addPayroll(String userId, double salary, String monthEntry, String yearEntry) {
+        try {
+            // Validate month
+            int month = Integer.parseInt(monthEntry);
+            if (month < 1 || month > 12) {
+                return "Invalid month. Please enter a value between 01 and 12.";
+            }
+
+            // Validate year
+            int year = Integer.parseInt(yearEntry);
+            if (year < 1900 || year > 2100) {
+                return "Invalid year. Please enter a valid 4-digit year.";
+            }
+
+            // Format month as 2 digits
+            String formattedMonth = String.format("%02d", month);
+
+            // Generate payroll ID
+            String payrollId = "payroll_" + System.currentTimeMillis() + "_" +
+                    java.util.UUID.randomUUID().toString().substring(0, 8);
+
+            // Create payroll document
+            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary?documentId=" + payrollId);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            JsonObject fields = new JsonObject();
+            fields.add("payroll_id", stringValue(payrollId));
+            fields.add("userid", stringValue(userId));
+            fields.add("Salary", doubleValue(salary));
+            fields.add("Month_Entry", stringValue(formattedMonth));
+            fields.add("Year_Entry", stringValue(yearEntry));
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", fields);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = conn.getResponseCode();
+            if (code == 200 || code == 201) {
+                return "Payroll entry added successfully! ID: " + payrollId;
+            } else {
+                return "Failed to add payroll entry.";
+            }
+
+        } catch (NumberFormatException e) {
+            return "Invalid month or year format. Please enter numeric values.";
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    // Get all payroll entries
+    public String getAllPayroll() {
+        try {
+            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                StringBuilder result = new StringBuilder();
+                result.append("========================================\n");
+                result.append("           ALL PAYROLL ENTRIES\n");
+                result.append("========================================\n");
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+                    int count = 1;
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String payrollId = getField(fields, "payroll_id");
+                        String userId = getField(fields, "userid");
+                        double salary = getDoubleField(fields, "Salary");
+                        String monthEntry = getField(fields, "Month_Entry");
+                        String yearEntry = getField(fields, "Year_Entry");
+
+                        // Get employee info
+                        String employeeInfo = getEmployeeNameAndEmail(userId);
+
+                        result.append("\n[").append(count++).append("]\n");
+                        result.append("Payroll ID  : ").append(payrollId).append("\n");
+                        result.append("Employee    : ").append(employeeInfo).append("\n");
+                        result.append("Salary      : RM ").append(String.format("%,.2f", salary)).append("\n");
+                        result.append("Month/Year  : ").append(getMonthName(monthEntry)).append(" ").append(yearEntry)
+                                .append("\n");
+                        result.append("----------------------------------------");
+                    }
+                    if (count == 1) {
+                        result.append("\nNo payroll entries found.\n");
+                    }
+                } else {
+                    result.append("\nNo payroll entries found.\n");
+                }
+                result.append("\n========================================");
+                return result.toString();
+            }
+            return "Failed to get payroll entries.";
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    // Get payroll by user ID
+    public String getPayrollByUserId(String userId) {
+        try {
+            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                // Get employee info
+                String employeeInfo = getEmployeeNameAndEmail(userId);
+
+                StringBuilder result = new StringBuilder();
+                result.append("========================================\n");
+                result.append("        PAYROLL HISTORY\n");
+                result.append("========================================\n");
+                result.append("Employee: ").append(employeeInfo).append("\n");
+                result.append("----------------------------------------");
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+                    int count = 1;
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String docUserId = getField(fields, "userid");
+                        if (!userId.equals(docUserId)) {
+                            continue;
+                        }
+
+                        String payrollId = getField(fields, "payroll_id");
+                        double salary = getDoubleField(fields, "Salary");
+                        String monthEntry = getField(fields, "Month_Entry");
+                        String yearEntry = getField(fields, "Year_Entry");
+
+                        result.append("\n[").append(count++).append("]\n");
+                        result.append("Payroll ID  : ").append(payrollId).append("\n");
+                        result.append("Salary      : RM ").append(String.format("%,.2f", salary)).append("\n");
+                        result.append("Month/Year  : ").append(getMonthName(monthEntry)).append(" ").append(yearEntry)
+                                .append("\n");
+                        result.append("----------------------------------------");
+                    }
+                    if (count == 1) {
+                        result.append("\nNo payroll entries found for this employee.\n");
+                        result.append("----------------------------------------");
+                    }
+                } else {
+                    result.append("\nNo payroll entries found for this employee.\n");
+                    result.append("----------------------------------------");
+                }
+                result.append("\n========================================");
+                return result.toString();
+            }
+            return "Failed to get payroll entries.";
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    // Update payroll entry
+    public boolean updatePayroll(String payrollId, double salary, String monthEntry, String yearEntry) {
+        try {
+            // Validate month
+            int month = Integer.parseInt(monthEntry);
+            if (month < 1 || month > 12) {
+                System.out.println("Invalid month");
+                return false;
+            }
+
+            // Validate year
+            int year = Integer.parseInt(yearEntry);
+            if (year < 1900 || year > 2100) {
+                System.out.println("Invalid year");
+                return false;
+            }
+
+            // Format month as 2 digits
+            String formattedMonth = String.format("%02d", month);
+
+            // First get the current payroll data (need userid)
+            String userId = null;
+
+            URL getUrl = new URL(FIRESTORE_URL + "/Payroll_Salary/" + payrollId);
+            HttpURLConnection getConn = (HttpURLConnection) getUrl.openConnection();
+            getConn.setRequestMethod("GET");
+
+            if (getConn.getResponseCode() == 200) {
+                String response = readResponse(getConn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                JsonObject existingFields = json.getAsJsonObject("fields");
+                userId = getField(existingFields, "userid");
+            }
+
+            if (userId == null) {
+                System.out.println("Could not get current payroll data");
+                return false;
+            }
+
+            // Delete the document
+            URL deleteUrl = new URL(FIRESTORE_URL + "/Payroll_Salary/" + payrollId);
+            HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
+            deleteConn.setRequestMethod("DELETE");
+            deleteConn.getResponseCode();
+
+            // Recreate with updated data
+            URL createUrl = new URL(FIRESTORE_URL + "/Payroll_Salary?documentId=" + payrollId);
+            HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
+            createConn.setRequestMethod("POST");
+            createConn.setRequestProperty("Content-Type", "application/json");
+            createConn.setDoOutput(true);
+
+            JsonObject fields = new JsonObject();
+            fields.add("payroll_id", stringValue(payrollId));
+            fields.add("userid", stringValue(userId));
+            fields.add("Salary", doubleValue(salary));
+            fields.add("Month_Entry", stringValue(formattedMonth));
+            fields.add("Year_Entry", stringValue(yearEntry));
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", fields);
+
+            try (OutputStream os = createConn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = createConn.getResponseCode();
+            return code == 200 || code == 201;
+
+        } catch (Exception e) {
+            System.out.println("Update Payroll Error: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Delete payroll entry
+    public boolean deletePayroll(String payrollId) {
+        try {
+            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary/" + payrollId);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("DELETE");
+
+            int code = conn.getResponseCode();
+            return code == 200 || code == 204;
+
+        } catch (Exception e) {
+            System.out.println("Delete Payroll Error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Helper method to get employee name and email
+    private String getEmployeeNameAndEmail(String userId) {
+        try {
+            URL url = new URL(FIRESTORE_URL + "/users/" + userId);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                JsonObject fields = json.getAsJsonObject("fields");
+
+                String firstName = getField(fields, "first_name");
+                String lastName = getField(fields, "last_name");
+                String email = getField(fields, "email");
+
+                return firstName + " " + lastName + " (" + email + ")";
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return "Unknown (" + userId + ")";
+    }
+
+    // Helper method to get double field value
+    private double getDoubleField(JsonObject fields, String name) {
+        if (fields != null && fields.has(name)) {
+            JsonObject field = fields.getAsJsonObject(name);
+            if (field.has("doubleValue")) {
+                return field.get("doubleValue").getAsDouble();
+            } else if (field.has("integerValue")) {
+                return field.get("integerValue").getAsDouble();
+            }
+        }
+        return 0.0;
+    }
 }
