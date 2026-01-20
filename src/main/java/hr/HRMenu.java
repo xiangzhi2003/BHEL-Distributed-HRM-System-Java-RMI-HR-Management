@@ -28,7 +28,8 @@ public class HRMenu {
                 System.out.println("2. Add Employee");
                 System.out.println("3. Edit Employee");
                 System.out.println("4. Delete Employee");
-                System.out.println("5. Logout");
+                System.out.println("5. Manage Payroll");
+                System.out.println("6. Logout");
                 System.out.println("----------------------------------------");
                 System.out.print("Choice: ");
 
@@ -48,6 +49,9 @@ public class HRMenu {
                         deleteEmployee(scanner);
                         break;
                     case "5":
+                        managePayroll(scanner);
+                        break;
+                    case "6":
                         running = false;
                         System.out.println("\nLogged out. Goodbye!");
                         break;
@@ -184,6 +188,237 @@ public class HRMenu {
                     System.out.println("\nEmployee deleted successfully!");
                 } else {
                     System.out.println("\nFailed to delete employee.");
+                }
+            } else {
+                System.out.println("\nDelete cancelled.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    // ==================== PAYROLL MANAGEMENT ====================
+
+    private static void managePayroll(Scanner scanner) {
+        boolean running = true;
+        while (running) {
+            try {
+                System.out.println("\n========================================");
+                System.out.println("         PAYROLL MANAGEMENT");
+                System.out.println("========================================");
+                System.out.println("Select an employee to manage their payroll:\n");
+
+                // Show all employees
+                String employees = authService.getAllEmployees();
+                System.out.println(employees);
+
+                System.out.println("\nEnter Employee UID (or 'back' to return): ");
+                System.out.print("UID: ");
+                String userId = scanner.nextLine();
+
+                if ("back".equalsIgnoreCase(userId)) {
+                    running = false;
+                    continue;
+                }
+
+                // Verify employee exists and get their info
+                String employeeDetails = authService.getEmployeeByUid(userId);
+                if (employeeDetails.contains("not found")) {
+                    System.out.println("\nEmployee not found. Please enter a valid UID.");
+                    continue;
+                }
+
+                // Extract employee name and email for display
+                String employeeName = extractEmployeeInfo(employeeDetails);
+
+                // Show employee-specific payroll submenu
+                manageEmployeePayroll(scanner, userId, employeeName);
+
+            } catch (Exception e) {
+                System.out.println("Error: " + e.getMessage());
+            }
+        }
+    }
+
+    private static String extractEmployeeInfo(String details) {
+        // Parse employee details to extract name and email
+        String firstName = "";
+        String lastName = "";
+        String email = "";
+
+        String[] lines = details.split("\n");
+        for (String line : lines) {
+            if (line.contains("Email")) {
+                email = line.substring(line.indexOf(":") + 1).trim();
+            } else if (line.contains("First Name")) {
+                firstName = line.substring(line.indexOf(":") + 1).trim();
+            } else if (line.contains("Last Name")) {
+                lastName = line.substring(line.indexOf(":") + 1).trim();
+            }
+        }
+
+        return firstName + " " + lastName + " (" + email + ")";
+    }
+
+    private static void manageEmployeePayroll(Scanner scanner, String userId, String employeeName) {
+        boolean running = true;
+        while (running) {
+            System.out.println("\n========================================");
+            System.out.println("   PAYROLL FOR: " + employeeName);
+            System.out.println("========================================");
+            System.out.println("1. View Payroll History");
+            System.out.println("2. Add Payroll Entry");
+            System.out.println("3. Edit Payroll Entry");
+            System.out.println("4. Delete Payroll Entry");
+            System.out.println("5. Back to Employee Selection");
+            System.out.println("----------------------------------------");
+            System.out.print("Choice: ");
+
+            String choice = scanner.nextLine();
+
+            switch (choice) {
+                case "1":
+                    viewEmployeePayroll(userId);
+                    break;
+                case "2":
+                    addEmployeePayroll(scanner, userId);
+                    break;
+                case "3":
+                    editEmployeePayroll(scanner, userId);
+                    break;
+                case "4":
+                    deleteEmployeePayroll(scanner, userId);
+                    break;
+                case "5":
+                    running = false;
+                    break;
+                default:
+                    System.out.println("\nInvalid choice.");
+            }
+        }
+    }
+
+    private static void viewEmployeePayroll(String userId) {
+        try {
+            String result = authService.getPayrollByUserId(userId);
+            System.out.println("\n" + result);
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void addEmployeePayroll(Scanner scanner, String userId) {
+        try {
+            System.out.println("\n========================================");
+            System.out.println("         ADD PAYROLL ENTRY");
+            System.out.println("========================================");
+
+            System.out.print("Salary (RM): ");
+            String salaryStr = scanner.nextLine();
+            double salary;
+            try {
+                salary = Double.parseDouble(salaryStr);
+                if (salary < 0) {
+                    System.out.println("\nSalary cannot be negative.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("\nInvalid salary format.");
+                return;
+            }
+
+            System.out.print("Month (01-12): ");
+            String monthEntry = scanner.nextLine();
+
+            System.out.print("Year (e.g., 2024): ");
+            String yearEntry = scanner.nextLine();
+
+            String result = authService.addPayroll(userId, salary, monthEntry, yearEntry);
+            System.out.println("\n" + result);
+
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void editEmployeePayroll(Scanner scanner, String userId) {
+        try {
+            System.out.println("\n========================================");
+            System.out.println("         EDIT PAYROLL ENTRY");
+            System.out.println("========================================");
+
+            // Show this employee's payroll entries
+            String payrollHistory = authService.getPayrollByUserId(userId);
+            System.out.println(payrollHistory);
+
+            if (payrollHistory.contains("No payroll entries found")) {
+                return;
+            }
+
+            System.out.print("\nEnter Payroll ID: ");
+            String payrollId = scanner.nextLine();
+
+            System.out.print("New Salary (RM): ");
+            String salaryStr = scanner.nextLine();
+            double salary;
+            try {
+                salary = Double.parseDouble(salaryStr);
+                if (salary < 0) {
+                    System.out.println("\nSalary cannot be negative.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("\nInvalid salary format.");
+                return;
+            }
+
+            System.out.print("New Month (01-12): ");
+            String monthEntry = scanner.nextLine();
+
+            System.out.print("New Year (e.g., 2024): ");
+            String yearEntry = scanner.nextLine();
+
+            boolean success = authService.updatePayroll(payrollId, salary, monthEntry, yearEntry);
+
+            if (success) {
+                System.out.println("\nPayroll entry updated successfully!");
+            } else {
+                System.out.println("\nFailed to update payroll entry. Please check the Payroll ID, month, or year.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void deleteEmployeePayroll(Scanner scanner, String userId) {
+        try {
+            System.out.println("\n========================================");
+            System.out.println("        DELETE PAYROLL ENTRY");
+            System.out.println("========================================");
+
+            // Show this employee's payroll entries
+            String payrollHistory = authService.getPayrollByUserId(userId);
+            System.out.println(payrollHistory);
+
+            if (payrollHistory.contains("No payroll entries found")) {
+                return;
+            }
+
+            System.out.print("\nEnter Payroll ID: ");
+            String payrollId = scanner.nextLine();
+
+            System.out.print("Are you sure you want to delete? (yes/no): ");
+            String confirm = scanner.nextLine();
+
+            if ("yes".equalsIgnoreCase(confirm)) {
+                boolean success = authService.deletePayroll(payrollId);
+
+                if (success) {
+                    System.out.println("\nPayroll entry deleted successfully!");
+                } else {
+                    System.out.println("\nFailed to delete payroll entry. Please check the Payroll ID.");
                 }
             } else {
                 System.out.println("\nDelete cancelled.");
