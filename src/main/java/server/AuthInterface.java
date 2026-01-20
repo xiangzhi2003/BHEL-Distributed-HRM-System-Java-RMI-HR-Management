@@ -21,4 +21,15 @@ public interface AuthInterface extends Remote {
             throws RemoteException;
 
     boolean deleteEmployee(String uid) throws RemoteException;
+
+    // Payroll Operations
+    String getAllPayroll() throws RemoteException;
+
+    String getPayrollByUserId(String userId) throws RemoteException;
+
+    String addPayroll(String userId, double salary, String monthEntry, String yearEntry) throws RemoteException;
+
+    boolean updatePayroll(String payrollId, double salary, String monthEntry, String yearEntry) throws RemoteException;
+
+    boolean deletePayroll(String payrollId) throws RemoteException;
 }
