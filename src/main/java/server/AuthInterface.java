@@ -19,4 +19,6 @@ public interface AuthInterface extends Remote {
 
     boolean updateEmployee(String uid, String firstName, String lastName, String icPassport, String role)
             throws RemoteException;
+
+    boolean deleteEmployee(String uid) throws RemoteException;
 }

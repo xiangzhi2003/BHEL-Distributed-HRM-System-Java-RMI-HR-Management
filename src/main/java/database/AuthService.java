@@ -1,11 +1,16 @@
 package database;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -31,6 +36,38 @@ public class AuthService {
 
     private static final String FIRESTORE_URL = "https://firestore.googleapis.com/v1/projects/" + PROJECT_ID
             + "/databases/(default)/documents";
+
+    private static boolean firebaseInitialized = false;
+
+    // Initialize Firebase Admin SDK
+    private void initFirebaseAdmin() {
+        if (firebaseInitialized)
+            return;
+
+        try {
+            java.io.File file = new java.io.File(SERVICE_ACCOUNT_PATH);
+            System.out.println("Looking for service account at: " + file.getAbsolutePath());
+
+            if (!file.exists()) {
+                System.out.println("ERROR: serviceAccountKey.json not found!");
+                System.out.println("Please download it from Firebase Console -> Project Settings -> Service Accounts");
+                return;
+            }
+
+            FileInputStream serviceAccount = new FileInputStream(file);
+            FirebaseOptions options = FirebaseOptions.builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .setProjectId(PROJECT_ID)
+                    .build();
+
+            FirebaseApp.initializeApp(options);
+            firebaseInitialized = true;
+            System.out.println("Firebase Admin SDK initialized successfully!");
+        } catch (Exception e) {
+            System.out.println("Firebase Admin init error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     // Login with Firebase Auth
     public String login(String email, String password) {
@@ -216,6 +253,39 @@ public class AuthService {
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
+    }
+
+    // Delete employee from Firestore and Firebase Auth
+    public boolean deleteEmployee(String uid) {
+        boolean firestoreDeleted = false;
+        boolean authDeleted = false;
+
+        // Delete from Firestore
+        try {
+            URL url = new URL(FIRESTORE_URL + "/users/" + uid);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("DELETE");
+
+            int code = conn.getResponseCode();
+            firestoreDeleted = (code == 200 || code == 204);
+            System.out.println("Firestore delete: " + (firestoreDeleted ? "Success" : "Failed"));
+
+        } catch (Exception e) {
+            System.out.println("Firestore Delete Error: " + e.getMessage());
+        }
+
+        // Delete from Firebase Auth using Admin SDK
+        try {
+            initFirebaseAdmin();
+            FirebaseAuth.getInstance().deleteUser(uid);
+            authDeleted = true;
+            System.out.println("Firebase Auth delete: Success");
+
+        } catch (Exception e) {
+            System.out.println("Firebase Auth Delete Error: " + e.getMessage());
+        }
+
+        return firestoreDeleted && authDeleted;
     }
 
     // Update employee in Firestore (delete and recreate to avoid PATCH issues)
