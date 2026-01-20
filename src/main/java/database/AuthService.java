@@ -218,6 +218,38 @@ public class AuthService {
         }
     }
 
+    // Get employee by UID
+    public String getEmployeeByUid(String uid) {
+        try {
+            URL url = new URL(FIRESTORE_URL + "/users/" + uid);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                JsonObject fields = json.getAsJsonObject("fields");
+
+                StringBuilder result = new StringBuilder();
+                result.append("========================================\n");
+                result.append("         EMPLOYEE DETAILS\n");
+                result.append("========================================\n");
+                result.append("UID         : ").append(uid).append("\n");
+                result.append("Email       : ").append(getField(fields, "email")).append("\n");
+                result.append("First Name  : ").append(getField(fields, "first_name")).append("\n");
+                result.append("Last Name   : ").append(getField(fields, "last_name")).append("\n");
+                result.append("IC/Passport : ").append(getField(fields, "ic_passport")).append("\n");
+                result.append("Role        : ").append(getField(fields, "role")).append("\n");
+                result.append("========================================");
+                return result.toString();
+            }
+            return "Employee not found.";
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
     // Helper methods
     private JsonObject stringValue(String value) {
         JsonObject obj = new JsonObject();

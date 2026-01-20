@@ -36,4 +36,10 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
         System.out.println("Server: Adding employee - " + email);
         return authService.addEmployee(email, password, firstName, lastName, icPassport, role);
     }
+
+    @Override
+    public String getEmployeeByUid(String uid) throws RemoteException {
+        System.out.println("Server: Getting employee - " + uid);
+        return authService.getEmployeeByUid(uid);
+    }
 }
