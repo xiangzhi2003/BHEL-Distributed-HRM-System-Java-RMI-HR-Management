@@ -148,6 +148,17 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 └── date_created_at: timestamp
 ```
 
+### Leave_Balance Collection
+```
+/Leave_Balance/{leave_balance_id}
+├── leave_balance_id: string
+├── userid: string
+├── year: string
+├── annual_leave: number
+├── emergency_leave: number
+└── medical_leave: number
+```
+
 ---
 
 ## Technology Stack
