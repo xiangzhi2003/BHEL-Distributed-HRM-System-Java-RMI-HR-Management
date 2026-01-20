@@ -67,6 +67,7 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 - **Employee Functions:**
   - View profile
   - View payroll history
+  - Leave application system (database ready)
 
 ### Planned Features
 - Leave approval/rejection (HR)
@@ -82,6 +83,7 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 | Task | Status |
 |------|--------|
 | Create Database Schema (Users) | ✅ Done |
+| Create Database Schema (Leaves) | ✅ Done |
 | Server Setup: RMI Registry & Connection | ✅ Done |
 | HR Task: Register Employee | ✅ Done |
 | HR Task: View Employee List | ✅ Done |
@@ -174,6 +176,15 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 - Firebase Admin SDK
 - Google Auth Library
 - Gson (JSON parsing)
+
+---
+
+## Test Accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| HR | (your HR email) | (password) |
+| Employee | (your employee email) | (password) |
 
 ---
 
