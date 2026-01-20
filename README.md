@@ -188,6 +188,38 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 
 ---
 
+## Configuration Files
+
+### serviceAccountKey.json
+
+This file contains Firebase service account credentials for server-side authentication. **Never commit this file to Git!**
+
+**Fields explained:**
+| Field | Description |
+|-------|-------------|
+| `type` | Always "service_account" for Firebase |
+| `project_id` | Your Firebase project ID |
+| `private_key_id` | Unique identifier for the private key |
+| `private_key` | RSA private key for authentication (keep secret!) |
+| `client_email` | Service account email address |
+| `client_id` | Unique client identifier |
+| `auth_uri` | Google OAuth2 authentication endpoint |
+| `token_uri` | Google OAuth2 token endpoint |
+| `auth_provider_x509_cert_url` | Google's public certificate URL |
+| `client_x509_cert_url` | Service account's public certificate URL |
+
+**How to obtain this file:**
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Select your project
+3. Click the gear icon > **Project Settings**
+4. Go to **Service Accounts** tab
+5. Click **Generate new private key**
+6. Save the downloaded file as `serviceAccountKey.json` in the project root
+
+**Security Warning:** This file grants full access to your Firebase project. Never share it or commit it to version control.
+
+---
+
 ## Notes
 
 - Ensure `serviceAccountKey.json` is in the project root directory

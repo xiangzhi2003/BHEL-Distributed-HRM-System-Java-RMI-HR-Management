@@ -7,10 +7,24 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
 
+/**
+ * RMIClient - The RMI Client Application (Main Entry Point)
+ *
+ * This is the CLIENT side of the RMI system. Run this AFTER the server.
+ *
+ * What it does:
+ * 1. Connects to the RMI Registry on localhost:1099
+ * 2. Looks up the "AuthService" remote object
+ * 3. Handles user login via Firebase Authentication
+ * 4. Redirects to appropriate menu based on user role (HR or Employee)
+ *
+ * The client calls methods on authService as if they were local,
+ * but they actually execute on the server.
+ */
 public class RMIClient {
 
     private static Scanner scanner = new Scanner(System.in);
-    private static AuthInterface authService;
+    private static AuthInterface authService; // Reference to the remote service
 
     public static void main(String[] args) {
         try {
@@ -19,11 +33,15 @@ public class RMIClient {
             System.out.println("========================================");
             System.out.println();
 
-            // Connect to RMI server
+            // Step 1: Connect to RMI Registry on the server
+            // getRegistry() connects to an existing registry (created by server)
             Registry registry = LocateRegistry.getRegistry("localhost", 1099);
+
+            // Step 2: Look up the remote object by name "AuthService"
+            // This returns a stub (proxy) that forwards calls to the server
             authService = (AuthInterface) registry.lookup("AuthService");
 
-            // Show login
+            // Step 3: Get login credentials from user
             System.out.println("Please login to continue");
             System.out.println("----------------------------------------");
             System.out.print("Email: ");
@@ -32,7 +50,8 @@ public class RMIClient {
             String password = scanner.nextLine();
             System.out.println("----------------------------------------");
 
-            // Authenticate with Firebase
+            // Step 4: Authenticate with Firebase (via RMI call to server)
+            // This call goes: Client -> RMI -> Server -> Firebase
             String uid = authService.login(email, password);
 
             if (uid == null) {
@@ -40,7 +59,7 @@ public class RMIClient {
                 return;
             }
 
-            // Get role from Firestore
+            // Step 5: Get user's role from Firestore (via RMI call)
             String role = authService.getRole(uid);
 
             if (role == null) {
@@ -48,7 +67,7 @@ public class RMIClient {
                 return;
             }
 
-            // Login successful
+            // Login successful - show user info
             System.out.println();
             System.out.println("========================================");
             System.out.println("         LOGIN SUCCESSFUL!");
@@ -59,11 +78,11 @@ public class RMIClient {
             System.out.println("========================================");
             System.out.println();
 
-            // Redirect based on role
+            // Step 6: Redirect to appropriate menu based on role
             if ("hr".equalsIgnoreCase(role)) {
-                HRMenu.show(scanner, uid, email);
+                HRMenu.show(scanner, uid, email);  // HR gets HR menu
             } else if ("employee".equalsIgnoreCase(role)) {
-                EmployeeMenu.show(scanner, uid, email);
+                EmployeeMenu.show(scanner, uid, email);  // Employee gets Employee menu
             } else {
                 System.out.println("Unknown role: " + role);
             }
@@ -71,7 +90,7 @@ public class RMIClient {
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
         } finally {
-            scanner.close();
+            scanner.close(); // Always close scanner to free resources
         }
     }
 }

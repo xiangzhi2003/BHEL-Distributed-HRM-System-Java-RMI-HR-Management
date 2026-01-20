@@ -17,32 +17,56 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * AuthService - Business Logic Layer (Firebase Operations)
+ *
+ * This class handles ALL communication with Firebase:
+ * - Firebase Authentication (login, signup, delete user)
+ * - Firestore Database (CRUD for users, payroll)
+ *
+ * Uses TWO different approaches:
+ * 1. REST API - For login, signup, and Firestore operations (using HTTP requests)
+ * 2. Admin SDK - For deleting users from Firebase Auth (requires serviceAccountKey.json)
+ *
+ * This class is called by AuthServiceImpl, which is called via RMI from the client.
+ */
 public class AuthService {
 
-    // Firebase API Key
+    // ==================== FIREBASE CONFIGURATION ====================
+
+    // Firebase Web API Key (from Firebase Console -> Project Settings)
     private static final String API_KEY = "AIzaSyCQEVRTuYHIL2YAiEtP6dIqhzblIRU28dA";
 
     // Firebase Project ID
     private static final String PROJECT_ID = "distributed-system-data";
 
-    // Path to service account key JSON file
+    // Path to service account key (needed for Admin SDK - delete users)
     private static final String SERVICE_ACCOUNT_PATH = "serviceAccountKey.json";
 
+    // Firebase REST API URLs
     private static final String AUTH_LOGIN_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="
             + API_KEY;
 
     private static final String AUTH_SIGNUP_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="
             + API_KEY;
 
+    // Firestore REST API base URL
     private static final String FIRESTORE_URL = "https://firestore.googleapis.com/v1/projects/" + PROJECT_ID
             + "/databases/(default)/documents";
 
+    // Track if Firebase Admin SDK has been initialized
     private static boolean firebaseInitialized = false;
 
-    // Initialize Firebase Admin SDK
+    // ==================== FIREBASE ADMIN SDK INITIALIZATION ====================
+
+    /**
+     * Initialize Firebase Admin SDK
+     * Required for operations that need admin privileges (like deleting users)
+     * Uses serviceAccountKey.json for authentication
+     */
     private void initFirebaseAdmin() {
         if (firebaseInitialized)
-            return;
+            return;  // Only initialize once
 
         try {
             java.io.File file = new java.io.File(SERVICE_ACCOUNT_PATH);
@@ -54,12 +78,14 @@ public class AuthService {
                 return;
             }
 
+            // Load credentials from service account file
             FileInputStream serviceAccount = new FileInputStream(file);
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .setProjectId(PROJECT_ID)
                     .build();
 
+            // Initialize the Firebase app
             FirebaseApp.initializeApp(options);
             firebaseInitialized = true;
             System.out.println("Firebase Admin SDK initialized successfully!");
@@ -69,7 +95,13 @@ public class AuthService {
         }
     }
 
-    // Login with Firebase Auth
+    // ==================== AUTHENTICATION METHODS ====================
+
+    /**
+     * Login user with Firebase Authentication REST API
+     * Sends POST request to Firebase Auth endpoint
+     * @return User's UID if successful, null if failed
+     */
     public String login(String email, String password) {
         try {
             URL url = new URL(AUTH_LOGIN_URL);
@@ -100,7 +132,11 @@ public class AuthService {
         }
     }
 
-    // Get role from Firestore
+    /**
+     * Get user's role from Firestore
+     * Reads the "role" field from /users/{uid} document
+     * @return "hr" or "employee", null if not found
+     */
     public String getRole(String uid) {
         try {
             URL url = new URL(FIRESTORE_URL + "/users/" + uid);
@@ -123,7 +159,14 @@ public class AuthService {
         }
     }
 
-    // Add employee to Firebase Auth and Firestore
+    // ==================== EMPLOYEE CRUD METHODS ====================
+
+    /**
+     * Add new employee to the system
+     * Step 1: Create user in Firebase Auth (signup)
+     * Step 2: Add user data to Firestore /users collection
+     * @return Success/error message
+     */
     public String addEmployee(String email, String password, String firstName, String lastName, String icPassport,
             String role) {
         try {
@@ -176,7 +219,10 @@ public class AuthService {
         }
     }
 
-    // Add user data to Firestore
+    /**
+     * Helper: Add user document to Firestore /users collection
+     * Called after creating user in Firebase Auth
+     */
     private boolean addUserToFirestore(String uid, String email, String firstName, String lastName, String icPassport,
             String role) {
         try {
@@ -209,7 +255,11 @@ public class AuthService {
         }
     }
 
-    // Get all employees from Firestore
+    /**
+     * Get all employees from Firestore /users collection
+     * Filters to only show users with role "employee" (not HR)
+     * @return Formatted string with all employee data
+     */
     public String getAllEmployees() {
         try {
             URL url = new URL(FIRESTORE_URL + "/users");
@@ -266,7 +316,13 @@ public class AuthService {
         }
     }
 
-    // Delete employee from Firestore and Firebase Auth
+    /**
+     * Delete employee from the system completely
+     * Step 1: Delete all payroll entries for this employee
+     * Step 2: Delete from Firestore /users collection
+     * Step 3: Delete from Firebase Auth (requires Admin SDK)
+     * @return true if all deletions successful
+     */
     public boolean deleteEmployee(String uid) {
         boolean firestoreDeleted = false;
         boolean authDeleted = false;
@@ -308,7 +364,10 @@ public class AuthService {
         return firestoreDeleted && authDeleted;
     }
 
-    // Delete all payroll entries for a specific user
+    /**
+     * Helper: Delete all payroll entries for a specific user
+     * Called when deleting an employee to clean up their payroll data
+     */
     private boolean deletePayrollByUserId(String userId) {
         try {
             URL url = new URL(FIRESTORE_URL + "/Payroll_Salary");
@@ -351,7 +410,11 @@ public class AuthService {
         }
     }
 
-    // Update employee in Firestore (delete and recreate to avoid PATCH issues)
+    /**
+     * Update employee data in Firestore
+     * Uses delete-and-recreate approach to avoid PATCH issues
+     * Email cannot be changed (read from existing document)
+     */
     public boolean updateEmployee(String uid, String firstName, String lastName, String icPassport, String role) {
         try {
             // First get the current data (email should not change)
@@ -409,7 +472,10 @@ public class AuthService {
         }
     }
 
-    // Get employee by UID
+    /**
+     * Get single employee by UID from Firestore
+     * @return Formatted string with employee details
+     */
     public String getEmployeeByUid(String uid) {
         try {
             URL url = new URL(FIRESTORE_URL + "/users/" + uid);
@@ -441,7 +507,13 @@ public class AuthService {
         }
     }
 
-    // Helper methods
+    // ==================== HELPER METHODS ====================
+    // These methods help format data for Firestore REST API
+
+    /**
+     * Helper: Create Firestore string value object
+     * Firestore REST API requires: {"stringValue": "actual value"}
+     */
     private JsonObject stringValue(String value) {
         JsonObject obj = new JsonObject();
         obj.addProperty("stringValue", value);
@@ -479,7 +551,10 @@ public class AuthService {
         return response.toString();
     }
 
-    // Helper method for double values
+    /**
+     * Helper: Create Firestore double value object
+     * Firestore REST API requires: {"doubleValue": 123.45}
+     */
     private JsonObject doubleValue(double value) {
         JsonObject obj = new JsonObject();
         obj.addProperty("doubleValue", value);
@@ -501,7 +576,14 @@ public class AuthService {
         return month;
     }
 
-    // Add payroll entry
+    // ==================== PAYROLL CRUD METHODS ====================
+    // These methods handle the Payroll_Salary collection in Firestore
+
+    /**
+     * Add new payroll entry to Firestore
+     * Validates month/year and checks for duplicate entries
+     * @return Success/error message
+     */
     public String addPayroll(String userId, double salary, String monthEntry, String yearEntry) {
         try {
             // Validate month
@@ -587,7 +669,11 @@ public class AuthService {
         }
     }
 
-    // Get all payroll entries
+    /**
+     * Get all payroll entries from Firestore
+     * Includes employee name lookup for each entry
+     * @return Formatted string with all payroll data
+     */
     public String getAllPayroll() {
         try {
             URL url = new URL(FIRESTORE_URL + "/Payroll_Salary");
@@ -643,7 +729,11 @@ public class AuthService {
         }
     }
 
-    // Get payroll by user ID
+    /**
+     * Get payroll history for a specific employee
+     * Filters entries by userId
+     * @return Formatted string with employee's payroll history
+     */
     public String getPayrollByUserId(String userId) {
         try {
             URL url = new URL(FIRESTORE_URL + "/Payroll_Salary");
@@ -706,7 +796,11 @@ public class AuthService {
         }
     }
 
-    // Update payroll entry
+    /**
+     * Update existing payroll entry
+     * Uses delete-and-recreate approach
+     * Validates month/year before updating
+     */
     public boolean updatePayroll(String payrollId, double salary, String monthEntry, String yearEntry) {
         try {
             // Validate month
@@ -782,7 +876,11 @@ public class AuthService {
         }
     }
 
-    // Delete payroll entry
+    /**
+     * Delete a payroll entry from Firestore
+     * @param payrollId The ID of the payroll entry to delete
+     * @return true if deleted successfully
+     */
     public boolean deletePayroll(String payrollId) {
         try {
             URL url = new URL(FIRESTORE_URL + "/Payroll_Salary/" + payrollId);
@@ -798,7 +896,10 @@ public class AuthService {
         }
     }
 
-    // Helper method to get employee name and email
+    /**
+     * Helper: Get employee name and email for display
+     * Used when showing payroll entries to identify the employee
+     */
     private String getEmployeeNameAndEmail(String userId) {
         try {
             URL url = new URL(FIRESTORE_URL + "/users/" + userId);
@@ -822,7 +923,10 @@ public class AuthService {
         return "Unknown (" + userId + ")";
     }
 
-    // Helper method to get double field value
+    /**
+     * Helper: Extract double value from Firestore JSON response
+     * Handles both doubleValue and integerValue formats
+     */
     private double getDoubleField(JsonObject fields, String name) {
         if (fields != null && fields.has(name)) {
             JsonObject field = fields.getAsJsonObject(name);

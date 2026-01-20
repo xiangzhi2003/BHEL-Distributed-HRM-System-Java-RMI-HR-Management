@@ -1,35 +1,89 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ==============================================
+    pom.xml - Maven Project Configuration
+    ==============================================
+    This is the Project Object Model (POM) file for Maven.
+    It defines project metadata, dependencies, and build configuration.
+
+    Maven uses this file to:
+    - Download required libraries (dependencies)
+    - Compile the Java source code
+    - Package the application
+    - Run the application with exec:java
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.rmi.system</groupId>
-    <artifactId>rmi-system</artifactId>
-    <version>1.0</version>
+    <!--
+        Project Coordinates (GAV - GroupId, ArtifactId, Version)
+        These uniquely identify this project in the Maven ecosystem.
+    -->
+    <groupId>com.rmi.system</groupId>      <!-- Organization/company identifier -->
+    <artifactId>rmi-system</artifactId>    <!-- Project name -->
+    <version>1.0</version>                 <!-- Current version -->
 
+    <!--
+        Build Properties
+        These configure how Maven compiles and processes the project.
+    -->
     <properties>
+        <!-- Java version for compilation (source and target) -->
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <!-- Character encoding for source files -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <!--
+        Dependencies
+        External libraries that this project needs to function.
+        Maven automatically downloads these from Maven Central Repository.
+    -->
     <dependencies>
+        <!--
+            Gson - Google's JSON library
+            Used for: Converting Java objects to/from JSON format
+            Example: Parsing Firebase responses, serializing data
+        -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.10.1</version>
         </dependency>
+
+        <!--
+            Firebase Admin SDK
+            Used for: Server-side Firebase operations
+            - Firestore database (CRUD operations)
+            - Firebase Authentication (user management)
+            - Requires serviceAccountKey.json for authentication
+        -->
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
             <version>9.2.0</version>
         </dependency>
+
+        <!--
+            Google Auth Library
+            Used for: OAuth2 authentication with Google services
+            Required by Firebase Admin SDK for secure API calls
+        -->
         <dependency>
             <groupId>com.google.auth</groupId>
             <artifactId>google-auth-library-oauth2-http</artifactId>
             <version>1.19.0</version>
         </dependency>
+
+        <!--
+            Google Guava
+            Used for: Common utility classes and collections
+            Provides helper methods for strings, collections, caching, etc.
+            Required by Firebase Admin SDK
+        -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
@@ -37,13 +91,28 @@
         </dependency>
     </dependencies>
 
+    <!--
+        Build Configuration
+        Plugins that extend Maven's build capabilities.
+    -->
     <build>
         <plugins>
+            <!--
+                Maven Compiler Plugin
+                Configures Java compilation settings.
+                Uses the Java version specified in properties above.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
             </plugin>
+
+            <!--
+                Exec Maven Plugin
+                Allows running Java applications directly from Maven.
+                Usage: mvn exec:java -Dexec.mainClass="server.RMIServer"
+            -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

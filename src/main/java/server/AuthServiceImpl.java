@@ -4,26 +4,47 @@ import database.AuthService;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
+/**
+ * AuthServiceImpl - Remote Object Implementation
+ *
+ * This class implements the AuthInterface and provides the actual functionality.
+ * - Extends UnicastRemoteObject to make it a remote object (can be called remotely)
+ * - Implements AuthInterface (the contract)
+ * - Acts as a BRIDGE between RMI calls and the actual business logic (AuthService)
+ *
+ * Flow: Client -> AuthInterface -> AuthServiceImpl -> AuthService -> Firebase
+ */
 public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterface {
 
+    // The actual business logic class that handles Firebase operations
     private AuthService authService;
 
+    /**
+     * Constructor - must throw RemoteException
+     * super() exports this object so it can receive remote calls
+     */
     public AuthServiceImpl() throws RemoteException {
-        super();
-        authService = new AuthService();
+        super(); // Export this object for remote access
+        authService = new AuthService(); // Create instance of business logic
     }
+
+    // ==================== AUTHENTICATION METHODS ====================
+    // These methods delegate to AuthService which handles Firebase Auth
 
     @Override
     public String login(String email, String password) throws RemoteException {
         System.out.println("Server: Login request for " + email);
-        return authService.login(email, password);
+        return authService.login(email, password); // Delegates to AuthService
     }
 
     @Override
     public String getRole(String uid) throws RemoteException {
         System.out.println("Server: Getting role for UID " + uid);
-        return authService.getRole(uid);
+        return authService.getRole(uid); // Gets role from Firestore
     }
+
+    // ==================== EMPLOYEE CRUD METHODS ====================
+    // These methods delegate to AuthService which handles Firestore operations
 
     @Override
     public String getAllEmployees() throws RemoteException {
@@ -55,7 +76,9 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
         return authService.deleteEmployee(uid);
     }
 
-    // Payroll Operations
+    // ==================== PAYROLL CRUD METHODS ====================
+    // These methods delegate to AuthService which handles Payroll_Salary collection
+
     @Override
     public String getAllPayroll() throws RemoteException {
         System.out.println("Server: Getting all payroll entries");

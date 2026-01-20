@@ -3,33 +3,103 @@ package server;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+/**
+ * AuthInterface - Remote Interface for RMI
+ *
+ * This is the CONTRACT between client and server in RMI.
+ * - Must extend java.rmi.Remote
+ * - All methods must throw RemoteException
+ * - Both client and server must have access to this interface
+ *
+ * The client uses this interface to call methods on the server remotely.
+ * The server implements this interface to provide the actual functionality.
+ */
 public interface AuthInterface extends Remote {
-    // Login
+
+    // ==================== AUTHENTICATION ====================
+
+    /**
+     * Authenticate user with email and password
+     * @param email User's email address
+     * @param password User's password
+     * @return User's UID if login successful, null if failed
+     */
     String login(String email, String password) throws RemoteException;
 
+    /**
+     * Get user's role from database
+     * @param uid User's unique ID
+     * @return Role string ("hr" or "employee"), null if not found
+     */
     String getRole(String uid) throws RemoteException;
 
-    // HR Operations
+    // ==================== EMPLOYEE CRUD OPERATIONS ====================
+
+    /**
+     * Get list of all employees (HR only)
+     * @return Formatted string containing all employee data
+     */
     String getAllEmployees() throws RemoteException;
 
+    /**
+     * Register a new employee in the system
+     * @return Success/error message
+     */
     String addEmployee(String email, String password, String firstName, String lastName, String icPassport, String role)
             throws RemoteException;
 
+    /**
+     * Get single employee details by UID
+     * @param uid Employee's unique ID
+     * @return Formatted string with employee details
+     */
     String getEmployeeByUid(String uid) throws RemoteException;
 
+    /**
+     * Update employee information
+     * @return true if successful, false if failed
+     */
     boolean updateEmployee(String uid, String firstName, String lastName, String icPassport, String role)
             throws RemoteException;
 
+    /**
+     * Delete employee from system (removes from Auth + Firestore + Payroll)
+     * @param uid Employee's unique ID
+     * @return true if successful, false if failed
+     */
     boolean deleteEmployee(String uid) throws RemoteException;
 
-    // Payroll Operations
+    // ==================== PAYROLL CRUD OPERATIONS ====================
+
+    /**
+     * Get all payroll entries (HR only)
+     * @return Formatted string with all payroll data
+     */
     String getAllPayroll() throws RemoteException;
 
+    /**
+     * Get payroll history for a specific employee
+     * @param userId Employee's UID
+     * @return Formatted string with payroll history
+     */
     String getPayrollByUserId(String userId) throws RemoteException;
 
+    /**
+     * Add new payroll entry for an employee
+     * @return Success/error message
+     */
     String addPayroll(String userId, double salary, String monthEntry, String yearEntry) throws RemoteException;
 
+    /**
+     * Update existing payroll entry
+     * @return true if successful, false if failed
+     */
     boolean updatePayroll(String payrollId, double salary, String monthEntry, String yearEntry) throws RemoteException;
 
+    /**
+     * Delete payroll entry
+     * @param payrollId Payroll entry ID
+     * @return true if successful, false if failed
+     */
     boolean deletePayroll(String payrollId) throws RemoteException;
 }

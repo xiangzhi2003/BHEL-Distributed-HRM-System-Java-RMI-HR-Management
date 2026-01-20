@@ -6,13 +6,33 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Scanner;
 
+/**
+ * HRMenu - HR Dashboard User Interface
+ *
+ * This class provides the menu interface for HR users.
+ * HR can perform the following operations:
+ * - View all employees
+ * - Add new employee (creates Firebase Auth + Firestore record)
+ * - Edit employee details
+ * - Delete employee (removes from Auth + Firestore + Payroll)
+ * - Manage payroll (CRUD operations on Payroll_Salary collection)
+ *
+ * All operations are done via RMI calls to the server.
+ */
 public class HRMenu {
 
+    // Reference to the remote service (RMI stub)
     private static AuthInterface authService;
 
+    /**
+     * Main entry point for HR menu
+     * @param scanner Shared Scanner for user input
+     * @param uid Current user's UID
+     * @param email Current user's email
+     */
     public static void show(Scanner scanner, String uid, String email) {
         try {
-            // Get RMI service
+            // Connect to RMI service (same as in RMIClient)
             Registry registry = LocateRegistry.getRegistry("localhost", 1099);
             authService = (AuthInterface) registry.lookup("AuthService");
 
@@ -22,8 +42,10 @@ public class HRMenu {
             System.out.println("Welcome, HR!");
             System.out.println();
 
+            // Main menu loop - keeps running until user logs out
             boolean running = true;
             while (running) {
+                // Display menu options
                 System.out.println("\n1. View All Employees");
                 System.out.println("2. Add Employee");
                 System.out.println("3. Edit Employee");
@@ -35,6 +57,7 @@ public class HRMenu {
 
                 String choice = scanner.nextLine();
 
+                // Handle user choice
                 switch (choice) {
                     case "1":
                         viewAllEmployees();
@@ -52,7 +75,7 @@ public class HRMenu {
                         managePayroll(scanner);
                         break;
                     case "6":
-                        running = false;
+                        running = false; // Exit the loop
                         System.out.println("\nLogged out. Goodbye!");
                         break;
                     default:
@@ -65,15 +88,23 @@ public class HRMenu {
         }
     }
 
+    // ==================== EMPLOYEE CRUD METHODS ====================
+
+    /**
+     * View all employees - Calls server to get employee list from Firestore
+     */
     private static void viewAllEmployees() {
         try {
-            String result = authService.getAllEmployees();
+            String result = authService.getAllEmployees(); // RMI call
             System.out.println("\n" + result);
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
 
+    /**
+     * Add new employee - Creates user in Firebase Auth + Firestore
+     */
     private static void addEmployee(Scanner scanner) {
         try {
             System.out.println("\n========================================");
@@ -112,6 +143,9 @@ public class HRMenu {
         }
     }
 
+    /**
+     * Edit employee - Updates employee data in Firestore
+     */
     private static void editEmployee(Scanner scanner) {
         try {
             System.out.println("\n========================================");
@@ -161,6 +195,9 @@ public class HRMenu {
         }
     }
 
+    /**
+     * Delete employee - Removes from Firebase Auth + Firestore + Payroll
+     */
     private static void deleteEmployee(Scanner scanner) {
         try {
             System.out.println("\n========================================");
@@ -205,7 +242,12 @@ public class HRMenu {
     }
 
     // ==================== PAYROLL MANAGEMENT ====================
+    // These methods handle CRUD operations for the Payroll_Salary collection
 
+    /**
+     * Payroll management entry point
+     * First select an employee, then manage their payroll entries
+     */
     private static void managePayroll(Scanner scanner) {
         boolean running = true;
         while (running) {
