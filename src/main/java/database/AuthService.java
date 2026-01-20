@@ -496,6 +496,35 @@ public class AuthService {
             // Format month as 2 digits
             String formattedMonth = String.format("%02d", month);
 
+            // Check for duplicate entry (same user + month + year)
+            URL checkUrl = new URL(FIRESTORE_URL + "/Payroll_Salary");
+            HttpURLConnection checkConn = (HttpURLConnection) checkUrl.openConnection();
+            checkConn.setRequestMethod("GET");
+
+            if (checkConn.getResponseCode() == 200) {
+                String response = readResponse(checkConn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String existingUserId = getField(fields, "userid");
+                        String existingMonth = getField(fields, "Month_Entry");
+                        String existingYear = getField(fields, "Year_Entry");
+
+                        if (userId.equals(existingUserId) &&
+                                formattedMonth.equals(existingMonth) &&
+                                yearEntry.equals(existingYear)) {
+                            return "Payroll entry already exists for this employee in " +
+                                    getMonthName(formattedMonth) + " " + yearEntry;
+                        }
+                    }
+                }
+            }
+
             // Generate payroll ID
             String payrollId = "payroll_" + System.currentTimeMillis() + "_" +
                     java.util.UUID.randomUUID().toString().substring(0, 8);
