@@ -1,5 +1,7 @@
 package database;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -159,11 +161,75 @@ public class AuthService {
         }
     }
 
+    // Get all employees from Firestore
+    public String getAllEmployees() {
+        try {
+            URL url = new URL(FIRESTORE_URL + "/users");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                StringBuilder result = new StringBuilder();
+                result.append("========================================\n");
+                result.append("           ALL EMPLOYEES\n");
+                result.append("========================================\n");
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+                    int count = 1;
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        // Only show employees, not HR
+                        String role = getField(fields, "role");
+                        if (!"employee".equalsIgnoreCase(role)) {
+                            continue;
+                        }
+
+                        // Get UID from document name
+                        String name = docObj.get("name").getAsString();
+                        String uid = name.substring(name.lastIndexOf("/") + 1);
+
+                        result.append("\n[").append(count++).append("]\n");
+                        result.append("UID         : ").append(uid).append("\n");
+                        result.append("Email       : ").append(getField(fields, "email")).append("\n");
+                        result.append("First Name  : ").append(getField(fields, "first_name")).append("\n");
+                        result.append("Last Name   : ").append(getField(fields, "last_name")).append("\n");
+                        result.append("IC/Passport : ").append(getField(fields, "ic_passport")).append("\n");
+                        result.append("Role        : ").append(role).append("\n");
+                    }
+                    if (count == 1) {
+                        result.append("No employees found.\n");
+                    }
+                } else {
+                    result.append("No employees found.\n");
+                }
+                result.append("========================================");
+                return result.toString();
+            }
+            return "Failed to get employees.";
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
     // Helper methods
     private JsonObject stringValue(String value) {
         JsonObject obj = new JsonObject();
         obj.addProperty("stringValue", value);
         return obj;
+    }
+
+    private String getField(JsonObject fields, String name) {
+        if (fields != null && fields.has(name)) {
+            return fields.getAsJsonObject(name).get("stringValue").getAsString();
+        }
+        return "N/A";
     }
 
     private String readResponse(HttpURLConnection conn) throws Exception {
