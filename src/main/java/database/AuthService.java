@@ -218,6 +218,64 @@ public class AuthService {
         }
     }
 
+    // Update employee in Firestore (delete and recreate to avoid PATCH issues)
+    public boolean updateEmployee(String uid, String firstName, String lastName, String icPassport, String role) {
+        try {
+            // First get the current data (email should not change)
+            String email = null;
+            URL getUrl = new URL(FIRESTORE_URL + "/users/" + uid);
+            HttpURLConnection getConn = (HttpURLConnection) getUrl.openConnection();
+            getConn.setRequestMethod("GET");
+
+            if (getConn.getResponseCode() == 200) {
+                String response = readResponse(getConn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                JsonObject existingFields = json.getAsJsonObject("fields");
+                email = getField(existingFields, "email");
+            }
+
+            if (email == null) {
+                System.out.println("Could not get current employee data");
+                return false;
+            }
+
+            // Delete the document
+            URL deleteUrl = new URL(FIRESTORE_URL + "/users/" + uid);
+            HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
+            deleteConn.setRequestMethod("DELETE");
+            deleteConn.getResponseCode(); // Execute delete
+
+            // Recreate with updated data
+            URL createUrl = new URL(FIRESTORE_URL + "/users?documentId=" + uid);
+            HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
+            createConn.setRequestMethod("POST");
+            createConn.setRequestProperty("Content-Type", "application/json");
+            createConn.setDoOutput(true);
+
+            JsonObject fields = new JsonObject();
+            fields.add("email", stringValue(email));
+            fields.add("first_name", stringValue(firstName));
+            fields.add("last_name", stringValue(lastName));
+            fields.add("ic_passport", stringValue(icPassport));
+            fields.add("role", stringValue(role));
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", fields);
+
+            try (OutputStream os = createConn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = createConn.getResponseCode();
+            return code == 200 || code == 201;
+
+        } catch (Exception e) {
+            System.out.println("Update Error: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     // Get employee by UID
     public String getEmployeeByUid(String uid) {
         try {
