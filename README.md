@@ -76,6 +76,42 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 
 ---
 
+## Development Team & Tasks
+
+### Dev 1 - System Architect & Admin
+| Task | Status |
+|------|--------|
+| Create Database Schema (Users) | ✅ Done |
+| Server Setup: RMI Registry & Connection | ✅ Done |
+| HR Task: Register Employee | ✅ Done |
+| HR Task: View Employee List | ✅ Done |
+
+### Dev 2 - Employee Functionality
+| Task | Status |
+|------|--------|
+| Employee Task: Apply for Leave | ❌ Pending |
+| Employee Task: Check Leave Status | ❌ Pending |
+| Employee Task: View Salary | ✅ Done |
+| UI: Employee Dashboard Main Menu | ⚠️ Partial |
+
+### Dev 3 - Profile & Notifications
+| Task | Status |
+|------|--------|
+| Employee Task: Fetch Profile | ✅ Done |
+| Employee Task: Update Profile | ❌ Pending |
+| System Task: Email Logic | ❌ Pending |
+| Security: Password Hashing | ✅ Done (Firebase) |
+
+### Dev 4 - HR Operations
+| Task | Status |
+|------|--------|
+| HR Task: View Pending Leave Requests | ❌ Pending |
+| HR Task: Approve/Reject Leave | ❌ Pending |
+| HR Task: Generate Yearly Report | ❌ Pending |
+| UI: HR Dashboard Main Menu | ✅ Done |
+
+---
+
 ## Database Schema (Firebase Firestore)
 
 ### Users Collection
