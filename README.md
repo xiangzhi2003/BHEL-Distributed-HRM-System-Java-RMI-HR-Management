@@ -76,6 +76,30 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 
 ---
 
+## Database Schema (Firebase Firestore)
+
+### Users Collection
+```
+/users/{uid}
+├── email: string
+├── first_name: string
+├── last_name: string
+├── ic_passport: string
+└── role: string ("hr" | "employee")
+```
+
+### Payroll_Salary Collection
+```
+/Payroll_Salary/{payroll_id}
+├── payroll_id: string
+├── userid: string
+├── Salary: number
+├── Month_Entry: string ("01" - "12")
+└── Year_Entry: string ("2024")
+```
+
+---
+
 ## Technology Stack
 
 - **Language:** Java 11+
