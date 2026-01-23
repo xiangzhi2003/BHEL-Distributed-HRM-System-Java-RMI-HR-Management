@@ -69,7 +69,7 @@ public class EmployeeMenu {
                 }
             }
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException | java.rmi.NotBoundException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -82,7 +82,7 @@ public class EmployeeMenu {
         try {
             String profile = authService.getEmployeeByUid(uid); // RMI call
             System.out.println("\n" + profile + "\n");
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -95,7 +95,7 @@ public class EmployeeMenu {
         try {
             String payroll = authService.getPayrollByUserId(uid); // RMI call
             System.out.println("\n" + payroll + "\n");
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }

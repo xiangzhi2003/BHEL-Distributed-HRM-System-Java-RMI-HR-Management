@@ -83,7 +83,7 @@ public class HRMenu {
                 }
             }
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException | java.rmi.NotBoundException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -97,7 +97,7 @@ public class HRMenu {
         try {
             String result = authService.getAllEmployees(); // RMI call
             System.out.println("\n" + result);
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -138,7 +138,7 @@ public class HRMenu {
             String result = authService.addEmployee(email, password, firstName, lastName, icPassport, role);
             System.out.println("\n" + result);
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -190,7 +190,7 @@ public class HRMenu {
                 System.out.println("\nFailed to update employee.");
             }
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -236,7 +236,7 @@ public class HRMenu {
                 System.out.println("\nDelete cancelled.");
             }
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -283,7 +283,7 @@ public class HRMenu {
                 // Show employee-specific payroll submenu
                 manageEmployeePayroll(scanner, userId, employeeName);
 
-            } catch (Exception e) {
+            } catch (java.rmi.RemoteException e) {
                 System.out.println("Error: " + e.getMessage());
             }
         }
@@ -351,7 +351,7 @@ public class HRMenu {
         try {
             String result = authService.getPayrollByUserId(userId);
             System.out.println("\n" + result);
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -385,7 +385,7 @@ public class HRMenu {
             String result = authService.addPayroll(userId, salary, monthEntry, yearEntry);
             System.out.println("\n" + result);
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -435,7 +435,7 @@ public class HRMenu {
                 System.out.println("\nFailed to update payroll entry. Please check the Payroll ID, month, or year.");
             }
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
@@ -472,7 +472,7 @@ public class HRMenu {
                 System.out.println("\nDelete cancelled.");
             }
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }

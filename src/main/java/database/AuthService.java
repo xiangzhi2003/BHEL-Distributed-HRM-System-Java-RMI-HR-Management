@@ -90,7 +90,7 @@ public class AuthService {
             FirebaseApp.initializeApp(options);
             firebaseInitialized = true;
             System.out.println("Firebase Admin SDK initialized successfully!");
-        } catch (Exception e) {
+        } catch (java.io.IOException | IllegalStateException e) {
             System.out.println("Firebase Admin init error: " + e.getMessage());
         }
     }
@@ -249,7 +249,7 @@ public class AuthService {
             int code = conn.getResponseCode();
             return code == 200 || code == 201;
 
-        } catch (Exception e) {
+        } catch (java.io.IOException e) {
             System.out.println("Firestore Error: " + e.getMessage());
             return false;
         }
@@ -345,7 +345,7 @@ public class AuthService {
             firestoreDeleted = (code == 200 || code == 204);
             System.out.println("Firestore delete: " + (firestoreDeleted ? "Success" : "Failed"));
 
-        } catch (Exception e) {
+        } catch (java.io.IOException e) {
             System.out.println("Firestore Delete Error: " + e.getMessage());
         }
 
@@ -356,7 +356,7 @@ public class AuthService {
             authDeleted = true;
             System.out.println("Firebase Auth delete: Success");
 
-        } catch (Exception e) {
+        } catch (com.google.firebase.auth.FirebaseAuthException e) {
             System.out.println("Firebase Auth Delete Error: " + e.getMessage());
         }
 
@@ -887,7 +887,7 @@ public class AuthService {
             int code = conn.getResponseCode();
             return code == 200 || code == 204;
 
-        } catch (Exception e) {
+        } catch (java.io.IOException e) {
             System.out.println("Delete Payroll Error: " + e.getMessage());
             return false;
         }

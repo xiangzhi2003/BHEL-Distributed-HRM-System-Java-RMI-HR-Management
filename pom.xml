@@ -30,9 +30,8 @@
         These configure how Maven compiles and processes the project.
     -->
     <properties>
-        <!-- Java version for compilation (source and target) -->
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <!-- Java version for compilation (using release for strict compatibility) -->
+        <maven.compiler.release>21</maven.compiler.release>
         <!-- Character encoding for source files -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>

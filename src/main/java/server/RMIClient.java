@@ -23,11 +23,10 @@ import java.util.Scanner;
  */
 public class RMIClient {
 
-    private static Scanner scanner = new Scanner(System.in);
     private static AuthInterface authService; // Reference to the remote service
 
     public static void main(String[] args) {
-        try {
+        try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("========================================");
             System.out.println("        COMPANY LOGIN SYSTEM");
             System.out.println("========================================");
@@ -87,10 +86,8 @@ public class RMIClient {
                 System.out.println("Unknown role: " + role);
             }
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException | java.rmi.NotBoundException e) {
             System.out.println("Error: " + e.getMessage());
-        } finally {
-            scanner.close(); // Always close scanner to free resources
         }
     }
 }

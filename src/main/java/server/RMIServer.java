@@ -38,9 +38,8 @@ public class RMIServer {
 
             // Server keeps running here, waiting for client requests
 
-        } catch (Exception e) {
+        } catch (java.rmi.RemoteException e) {
             System.out.println("Server Error: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 }

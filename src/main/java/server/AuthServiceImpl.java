@@ -17,7 +17,7 @@ import java.rmi.server.UnicastRemoteObject;
 public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterface {
 
     // The actual business logic class that handles Firebase operations
-    private AuthService authService;
+    private final AuthService authService;
 
     /**
      * Constructor - must throw RemoteException
