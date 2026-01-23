@@ -34,7 +34,7 @@ public class RMIServer {
             System.out.println("         RMI SERVER STARTED");
             System.out.println("         Port: 1099");
             System.out.println("========================================");
-            System.out.println("Waiting for connections...");
+            System.out.println("Waiting for the connections...");
 
             // Server keeps running here, waiting for client requests
 
