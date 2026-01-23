@@ -14,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
@@ -91,7 +92,6 @@ public class AuthService {
             System.out.println("Firebase Admin SDK initialized successfully!");
         } catch (Exception e) {
             System.out.println("Firebase Admin init error: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -104,7 +104,7 @@ public class AuthService {
      */
     public String login(String email, String password) {
         try {
-            URL url = new URL(AUTH_LOGIN_URL);
+            URL url = URI.create(AUTH_LOGIN_URL).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -139,7 +139,7 @@ public class AuthService {
      */
     public String getRole(String uid) {
         try {
-            URL url = new URL(FIRESTORE_URL + "/users/" + uid);
+            URL url = URI.create(FIRESTORE_URL + "/users/" + uid).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
@@ -171,7 +171,7 @@ public class AuthService {
             String role) {
         try {
             // Step 1: Create user in Firebase Auth
-            URL url = new URL(AUTH_SIGNUP_URL);
+            URL url = URI.create(AUTH_SIGNUP_URL).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -226,7 +226,7 @@ public class AuthService {
     private boolean addUserToFirestore(String uid, String email, String firstName, String lastName, String icPassport,
             String role) {
         try {
-            URL url = new URL(FIRESTORE_URL + "/users?documentId=" + uid);
+            URL url = URI.create(FIRESTORE_URL + "/users?documentId=" + uid).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -262,7 +262,7 @@ public class AuthService {
      */
     public String getAllEmployees() {
         try {
-            URL url = new URL(FIRESTORE_URL + "/users");
+            URL url = URI.create(FIRESTORE_URL + "/users").toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
@@ -326,11 +326,10 @@ public class AuthService {
     public boolean deleteEmployee(String uid) {
         boolean firestoreDeleted = false;
         boolean authDeleted = false;
-        boolean payrollDeleted = false;
 
         // First, delete all payroll entries for this employee
         try {
-            payrollDeleted = deletePayrollByUserId(uid);
+            boolean payrollDeleted = deletePayrollByUserId(uid);
             System.out.println("Payroll entries delete: " + (payrollDeleted ? "Success" : "No entries or failed"));
         } catch (Exception e) {
             System.out.println("Payroll Delete Error: " + e.getMessage());
@@ -338,7 +337,7 @@ public class AuthService {
 
         // Delete from Firestore
         try {
-            URL url = new URL(FIRESTORE_URL + "/users/" + uid);
+            URL url = URI.create(FIRESTORE_URL + "/users/" + uid).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("DELETE");
 
@@ -370,7 +369,7 @@ public class AuthService {
      */
     private boolean deletePayrollByUserId(String userId) {
         try {
-            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary");
+            URL url = URI.create(FIRESTORE_URL + "/Payroll_Salary").toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
@@ -419,7 +418,7 @@ public class AuthService {
         try {
             // First get the current data (email should not change)
             String email = null;
-            URL getUrl = new URL(FIRESTORE_URL + "/users/" + uid);
+            URL getUrl = URI.create(FIRESTORE_URL + "/users/" + uid).toURL();
             HttpURLConnection getConn = (HttpURLConnection) getUrl.openConnection();
             getConn.setRequestMethod("GET");
 
@@ -436,13 +435,13 @@ public class AuthService {
             }
 
             // Delete the document
-            URL deleteUrl = new URL(FIRESTORE_URL + "/users/" + uid);
+            URL deleteUrl = URI.create(FIRESTORE_URL + "/users/" + uid).toURL();
             HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
             deleteConn.setRequestMethod("DELETE");
             deleteConn.getResponseCode(); // Execute delete
 
             // Recreate with updated data
-            URL createUrl = new URL(FIRESTORE_URL + "/users?documentId=" + uid);
+            URL createUrl = URI.create(FIRESTORE_URL + "/users?documentId=" + uid).toURL();
             HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
             createConn.setRequestMethod("POST");
             createConn.setRequestProperty("Content-Type", "application/json");
@@ -467,7 +466,6 @@ public class AuthService {
 
         } catch (Exception e) {
             System.out.println("Update Error: " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }
@@ -478,7 +476,7 @@ public class AuthService {
      */
     public String getEmployeeByUid(String uid) {
         try {
-            URL url = new URL(FIRESTORE_URL + "/users/" + uid);
+            URL url = URI.create(FIRESTORE_URL + "/users/" + uid).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
@@ -528,27 +526,27 @@ public class AuthService {
     }
 
     private String readResponse(HttpURLConnection conn) throws Exception {
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-        StringBuilder response = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            response.append(line);
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            return response.toString();
         }
-        reader.close();
-        return response.toString();
     }
 
     private String readErrorResponse(HttpURLConnection conn) throws Exception {
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
-        StringBuilder response = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            response.append(line);
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            return response.toString();
         }
-        reader.close();
-        return response.toString();
     }
 
     /**
@@ -602,7 +600,7 @@ public class AuthService {
             String formattedMonth = String.format("%02d", month);
 
             // Check for duplicate entry (same user + month + year)
-            URL checkUrl = new URL(FIRESTORE_URL + "/Payroll_Salary");
+            URL checkUrl = URI.create(FIRESTORE_URL + "/Payroll_Salary").toURL();
             HttpURLConnection checkConn = (HttpURLConnection) checkUrl.openConnection();
             checkConn.setRequestMethod("GET");
 
@@ -635,7 +633,7 @@ public class AuthService {
                     java.util.UUID.randomUUID().toString().substring(0, 8);
 
             // Create payroll document
-            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary?documentId=" + payrollId);
+            URL url = URI.create(FIRESTORE_URL + "/Payroll_Salary?documentId=" + payrollId).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -676,7 +674,7 @@ public class AuthService {
      */
     public String getAllPayroll() {
         try {
-            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary");
+            URL url = URI.create(FIRESTORE_URL + "/Payroll_Salary").toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
@@ -736,7 +734,7 @@ public class AuthService {
      */
     public String getPayrollByUserId(String userId) {
         try {
-            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary");
+            URL url = URI.create(FIRESTORE_URL + "/Payroll_Salary").toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
@@ -823,7 +821,7 @@ public class AuthService {
             // First get the current payroll data (need userid)
             String userId = null;
 
-            URL getUrl = new URL(FIRESTORE_URL + "/Payroll_Salary/" + payrollId);
+            URL getUrl = URI.create(FIRESTORE_URL + "/Payroll_Salary/" + payrollId).toURL();
             HttpURLConnection getConn = (HttpURLConnection) getUrl.openConnection();
             getConn.setRequestMethod("GET");
 
@@ -840,13 +838,13 @@ public class AuthService {
             }
 
             // Delete the document
-            URL deleteUrl = new URL(FIRESTORE_URL + "/Payroll_Salary/" + payrollId);
+            URL deleteUrl = URI.create(FIRESTORE_URL + "/Payroll_Salary/" + payrollId).toURL();
             HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
             deleteConn.setRequestMethod("DELETE");
             deleteConn.getResponseCode();
 
             // Recreate with updated data
-            URL createUrl = new URL(FIRESTORE_URL + "/Payroll_Salary?documentId=" + payrollId);
+            URL createUrl = URI.create(FIRESTORE_URL + "/Payroll_Salary?documentId=" + payrollId).toURL();
             HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
             createConn.setRequestMethod("POST");
             createConn.setRequestProperty("Content-Type", "application/json");
@@ -871,7 +869,6 @@ public class AuthService {
 
         } catch (Exception e) {
             System.out.println("Update Payroll Error: " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }
@@ -883,7 +880,7 @@ public class AuthService {
      */
     public boolean deletePayroll(String payrollId) {
         try {
-            URL url = new URL(FIRESTORE_URL + "/Payroll_Salary/" + payrollId);
+            URL url = URI.create(FIRESTORE_URL + "/Payroll_Salary/" + payrollId).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("DELETE");
 
@@ -902,7 +899,7 @@ public class AuthService {
      */
     private String getEmployeeNameAndEmail(String userId) {
         try {
-            URL url = new URL(FIRESTORE_URL + "/users/" + userId);
+            URL url = URI.create(FIRESTORE_URL + "/users/" + userId).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 
