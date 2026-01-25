@@ -26,10 +26,13 @@ import java.nio.charset.StandardCharsets;
  * - Firestore Database (CRUD for users, payroll)
  *
  * Uses TWO different approaches:
- * 1. REST API - For login, signup, and Firestore operations (using HTTP requests)
- * 2. Admin SDK - For deleting users from Firebase Auth (requires serviceAccountKey.json)
+ * 1. REST API - For login, signup, and Firestore operations (using HTTP
+ * requests)
+ * 2. Admin SDK - For deleting users from Firebase Auth (requires
+ * serviceAccountKey.json)
  *
- * This class is called by AuthServiceImpl, which is called via RMI from the client.
+ * This class is called by AuthServiceImpl, which is called via RMI from the
+ * client.
  */
 public class AuthService {
 
@@ -65,19 +68,51 @@ public class AuthService {
      * Required for operations that need admin privileges (like deleting users)
      * Uses serviceAccountKey.json for authentication
      */
+    /**
+     * Initialize Firebase Admin SDK
+     * Required for operations that need admin privileges (like deleting users)
+     * Uses serviceAccountKey.json for authentication
+     */
     private void initFirebaseAdmin() {
         if (firebaseInitialized)
-            return;  // Only initialize once
+            return; // Only initialize once
 
         try {
-            java.io.File file = new java.io.File(SERVICE_ACCOUNT_PATH);
-            System.out.println("Looking for service account at: " + file.getAbsolutePath());
+            // Check current directory first
+            String[] pathsToCheck = {
+                    SERVICE_ACCOUNT_PATH,
+                    "../" + SERVICE_ACCOUNT_PATH, // Check parent directory
+                    "BHEL-Distributed-HRM-System-Java-RMI-HR-Management/" + SERVICE_ACCOUNT_PATH // Check subfolder if
+                                                                                                 // running from root
+            };
 
-            if (!file.exists()) {
-                System.out.println("ERROR: serviceAccountKey.json not found!");
-                System.out.println("Please download it from Firebase Console -> Project Settings -> Service Accounts");
+            java.io.File file = null;
+            for (String path : pathsToCheck) {
+                java.io.File f = new java.io.File(path);
+                System.out.println("Checking for key at: " + f.getAbsolutePath());
+                if (f.exists()) {
+                    file = f;
+                    break;
+                }
+            }
+
+            if (file == null || !file.exists()) {
+                System.out
+                        .println("==================================================================================");
+                System.out.println("CRITICAL ERROR: serviceAccountKey.json NOT FOUND!");
+                System.out
+                        .println("----------------------------------------------------------------------------------");
+                System.out.println("To support Email Updates, you MUST:");
+                System.out.println(
+                        "1. Download the private key from Firebase Console -> Project Settings -> Service Accounts");
+                System.out.println("2. Rename it to 'serviceAccountKey.json'");
+                System.out.println("3. Place it in THIS folder: " + new java.io.File(".").getAbsolutePath());
+                System.out
+                        .println("==================================================================================");
                 return;
             }
+
+            System.out.println("Found service account key at: " + file.getAbsolutePath());
 
             // Load credentials from service account file
             FileInputStream serviceAccount = new FileInputStream(file);
@@ -87,7 +122,11 @@ public class AuthService {
                     .build();
 
             // Initialize the Firebase app
-            FirebaseApp.initializeApp(options);
+            // Check if already initialized to avoid duplicate app errors
+            if (FirebaseApp.getApps().isEmpty()) {
+                FirebaseApp.initializeApp(options);
+            }
+
             firebaseInitialized = true;
             System.out.println("Firebase Admin SDK initialized successfully!");
         } catch (java.io.IOException | IllegalStateException e) {
@@ -100,6 +139,7 @@ public class AuthService {
     /**
      * Login user with Firebase Authentication REST API
      * Sends POST request to Firebase Auth endpoint
+     * 
      * @return User's UID if successful, null if failed
      */
     public String login(String email, String password) {
@@ -123,8 +163,12 @@ public class AuthService {
                 String response = readResponse(conn);
                 JsonObject json = JsonParser.parseString(response).getAsJsonObject();
                 return json.get("localId").getAsString();
+            } else {
+                System.out.println("Login Failed. Response Code: " + conn.getResponseCode());
+                String error = readErrorResponse(conn);
+                System.out.println("Error Response: " + error);
+                return null;
             }
-            return null;
 
         } catch (Exception e) {
             System.out.println("Auth Error: " + e.getMessage());
@@ -135,6 +179,7 @@ public class AuthService {
     /**
      * Get user's role from Firestore
      * Reads the "role" field from /users/{uid} document
+     * 
      * @return "hr" or "employee", null if not found
      */
     public String getRole(String uid) {
@@ -165,6 +210,7 @@ public class AuthService {
      * Add new employee to the system
      * Step 1: Create user in Firebase Auth (signup)
      * Step 2: Add user data to Firestore /users collection
+     * 
      * @return Success/error message
      */
     public String addEmployee(String email, String password, String firstName, String lastName, String icPassport,
@@ -258,6 +304,7 @@ public class AuthService {
     /**
      * Get all employees from Firestore /users collection
      * Filters to only show users with role "employee" (not HR)
+     * 
      * @return Formatted string with all employee data
      */
     public String getAllEmployees() {
@@ -321,6 +368,7 @@ public class AuthService {
      * Step 1: Delete all payroll entries for this employee
      * Step 2: Delete from Firestore /users collection
      * Step 3: Delete from Firebase Auth (requires Admin SDK)
+     * 
      * @return true if all deletions successful
      */
     public boolean deleteEmployee(String uid) {
@@ -471,7 +519,112 @@ public class AuthService {
     }
 
     /**
+     * Update own profile information (Employee only)
+     * Preserves existing Role, Updates Email via Admin SDK
+     */
+    public boolean updateOwnProfile(String uid, String newEmail, String firstName, String lastName, String icPassport) {
+        try {
+            // First get the current data
+            String currentEmail = null;
+            String role = null;
+
+            URL getUrl = URI.create(FIRESTORE_URL + "/users/" + uid).toURL();
+            HttpURLConnection getConn = (HttpURLConnection) getUrl.openConnection();
+            getConn.setRequestMethod("GET");
+
+            if (getConn.getResponseCode() == 200) {
+                String response = readResponse(getConn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                JsonObject existingFields = json.getAsJsonObject("fields");
+                currentEmail = getField(existingFields, "email");
+                role = getField(existingFields, "role");
+            }
+
+            if (currentEmail == null || role == null) {
+                System.out.println("Could not get current employee data for update");
+                return false;
+            }
+
+            // If email is different, update it in Firebase Auth
+            // NOTE: Client logic should normally prevent empty strings, but let's be safe
+            String emailToSave = currentEmail;
+            if (newEmail != null && !newEmail.isEmpty() && !newEmail.equals(currentEmail)) {
+                try {
+                    // Update Firebase Auth
+                    initFirebaseAdmin();
+                    com.google.firebase.auth.UserRecord.UpdateRequest request = new com.google.firebase.auth.UserRecord.UpdateRequest(
+                            uid)
+                            .setEmail(newEmail);
+                    FirebaseAuth.getInstance().updateUser(request);
+                    System.out.println("Firebase Auth Email Updated: " + newEmail);
+                    emailToSave = newEmail;
+                } catch (Exception e) {
+                    System.out.println("Failed to update email in Auth: " + e.getMessage());
+                    return false; // Abort if Auth update fails
+                }
+            } else if (newEmail != null && !newEmail.isEmpty()) {
+                emailToSave = newEmail; // Even if same, ensure we use the non-null value
+            }
+
+            // Delete the document
+            URL deleteUrl = URI.create(FIRESTORE_URL + "/users/" + uid).toURL();
+            HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
+            deleteConn.setRequestMethod("DELETE");
+            deleteConn.getResponseCode(); // Execute delete
+
+            // Recreate with updated data
+            URL createUrl = URI.create(FIRESTORE_URL + "/users?documentId=" + uid).toURL();
+            HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
+            createConn.setRequestMethod("POST");
+            createConn.setRequestProperty("Content-Type", "application/json");
+            createConn.setDoOutput(true);
+
+            JsonObject fields = new JsonObject();
+            fields.add("email", stringValue(emailToSave));
+            fields.add("first_name", stringValue(firstName));
+            fields.add("last_name", stringValue(lastName));
+            fields.add("ic_passport", stringValue(icPassport));
+            fields.add("role", stringValue(role)); // Preserve role
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", fields);
+
+            try (OutputStream os = createConn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = createConn.getResponseCode();
+            return code == 200 || code == 201;
+
+        } catch (Exception e) {
+            System.out.println("Update Own Profile Error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get raw employee data (JSON format)
+     * Used for client-side parsing
+     */
+    public String getEmployeeRaw(String uid) {
+        try {
+            URL url = URI.create(FIRESTORE_URL + "/users/" + uid).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                return readResponse(conn);
+            }
+            return null;
+        } catch (Exception e) {
+            System.out.println("Get Employee Raw Error: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Get single employee by UID from Firestore
+     * 
      * @return Formatted string with employee details
      */
     public String getEmployeeByUid(String uid) {
@@ -580,6 +733,7 @@ public class AuthService {
     /**
      * Add new payroll entry to Firestore
      * Validates month/year and checks for duplicate entries
+     * 
      * @return Success/error message
      */
     public String addPayroll(String userId, double salary, String monthEntry, String yearEntry) {
@@ -670,6 +824,7 @@ public class AuthService {
     /**
      * Get all payroll entries from Firestore
      * Includes employee name lookup for each entry
+     * 
      * @return Formatted string with all payroll data
      */
     public String getAllPayroll() {
@@ -730,6 +885,7 @@ public class AuthService {
     /**
      * Get payroll history for a specific employee
      * Filters entries by userId
+     * 
      * @return Formatted string with employee's payroll history
      */
     public String getPayrollByUserId(String userId) {
@@ -875,6 +1031,7 @@ public class AuthService {
 
     /**
      * Delete a payroll entry from Firestore
+     * 
      * @param payrollId The ID of the payroll entry to delete
      * @return true if deleted successfully
      */

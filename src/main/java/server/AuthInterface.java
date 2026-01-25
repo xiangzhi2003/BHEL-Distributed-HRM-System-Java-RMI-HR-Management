@@ -16,90 +16,119 @@ import java.rmi.RemoteException;
  */
 public interface AuthInterface extends Remote {
 
-    // ==================== AUTHENTICATION ====================
+        // ==================== AUTHENTICATION ====================
 
-    /**
-     * Authenticate user with email and password
-     * @param email User's email address
-     * @param password User's password
-     * @return User's UID if login successful, null if failed
-     */
-    String login(String email, String password) throws RemoteException;
+        /**
+         * Authenticate user with email and password
+         * 
+         * @param email    User's email address
+         * @param password User's password
+         * @return User's UID if login successful, null if failed
+         */
+        String login(String email, String password) throws RemoteException;
 
-    /**
-     * Get user's role from database
-     * @param uid User's unique ID
-     * @return Role string ("hr" or "employee"), null if not found
-     */
-    String getRole(String uid) throws RemoteException;
+        /**
+         * Get user's role from database
+         * 
+         * @param uid User's unique ID
+         * @return Role string ("hr" or "employee"), null if not found
+         */
+        String getRole(String uid) throws RemoteException;
 
-    // ==================== EMPLOYEE CRUD OPERATIONS ====================
+        // ==================== EMPLOYEE CRUD OPERATIONS ====================
 
-    /**
-     * Get list of all employees (HR only)
-     * @return Formatted string containing all employee data
-     */
-    String getAllEmployees() throws RemoteException;
+        /**
+         * Get list of all employees (HR only)
+         * 
+         * @return Formatted string containing all employee data
+         */
+        String getAllEmployees() throws RemoteException;
 
-    /**
-     * Register a new employee in the system
-     * @return Success/error message
-     */
-    String addEmployee(String email, String password, String firstName, String lastName, String icPassport, String role)
-            throws RemoteException;
+        /**
+         * Register a new employee in the system
+         * 
+         * @return Success/error message
+         */
+        String addEmployee(String email, String password, String firstName, String lastName, String icPassport,
+                        String role)
+                        throws RemoteException;
 
-    /**
-     * Get single employee details by UID
-     * @param uid Employee's unique ID
-     * @return Formatted string with employee details
-     */
-    String getEmployeeByUid(String uid) throws RemoteException;
+        /**
+         * Get single employee details by UID
+         * 
+         * @param uid Employee's unique ID
+         * @return Formatted string with employee details
+         */
+        String getEmployeeByUid(String uid) throws RemoteException;
 
-    /**
-     * Update employee information
-     * @return true if successful, false if failed
-     */
-    boolean updateEmployee(String uid, String firstName, String lastName, String icPassport, String role)
-            throws RemoteException;
+        /**
+         * Update employee information
+         * 
+         * @return true if successful, false if failed
+         */
+        boolean updateEmployee(String uid, String firstName, String lastName, String icPassport, String role)
+                        throws RemoteException;
 
-    /**
-     * Delete employee from system (removes from Auth + Firestore + Payroll)
-     * @param uid Employee's unique ID
-     * @return true if successful, false if failed
-     */
-    boolean deleteEmployee(String uid) throws RemoteException;
+        /**
+         * Update own profile information (Employee only)
+         * Cannot change role
+         * 
+         * @return true if successful, false if failed
+         */
+        boolean updateOwnProfile(String uid, String email, String firstName, String lastName, String icPassport)
+                        throws RemoteException;
 
-    // ==================== PAYROLL CRUD OPERATIONS ====================
+        /**
+         * Get raw employee data (JSON format)
+         * Used for client-side parsing to pre-fill forms
+         */
+        String getEmployeeRaw(String uid) throws RemoteException;
 
-    /**
-     * Get all payroll entries (HR only)
-     * @return Formatted string with all payroll data
-     */
-    String getAllPayroll() throws RemoteException;
+        /**
+         * Delete employee from system (removes from Auth + Firestore + Payroll)
+         * 
+         * @param uid Employee's unique ID
+         * @return true if successful, false if failed
+         */
+        boolean deleteEmployee(String uid) throws RemoteException;
 
-    /**
-     * Get payroll history for a specific employee
-     * @param userId Employee's UID
-     * @return Formatted string with payroll history
-     */
-    String getPayrollByUserId(String userId) throws RemoteException;
+        // ==================== PAYROLL CRUD OPERATIONS ====================
 
-    /**
-     * Add new payroll entry for an employee
-     * @return Success/error message
-     */
-    String addPayroll(String userId, double salary, String monthEntry, String yearEntry) throws RemoteException;
+        /**
+         * Get all payroll entries (HR only)
+         * 
+         * @return Formatted string with all payroll data
+         */
+        String getAllPayroll() throws RemoteException;
 
-    /**
-     * Update existing payroll entry
-     * @return true if successful, false if failed
-     */
-    boolean updatePayroll(String payrollId, double salary, String monthEntry, String yearEntry) throws RemoteException;
+        /**
+         * Get payroll history for a specific employee
+         * 
+         * @param userId Employee's UID
+         * @return Formatted string with payroll history
+         */
+        String getPayrollByUserId(String userId) throws RemoteException;
 
-    /**
-     * Delete payroll entry
-     * @param payrollId Payroll entry ID
-     * @return true if successful, false if failed
-     */
-    boolean deletePayroll(String payrollId) throws RemoteException;
+        /**
+         * Add new payroll entry for an employee
+         * 
+         * @return Success/error message
+         */
+        String addPayroll(String userId, double salary, String monthEntry, String yearEntry) throws RemoteException;
+
+        /**
+         * Update existing payroll entry
+         * 
+         * @return true if successful, false if failed
+         */
+        boolean updatePayroll(String payrollId, double salary, String monthEntry, String yearEntry)
+                        throws RemoteException;
+
+        /**
+         * Delete payroll entry
+         * 
+         * @param payrollId Payroll entry ID
+         * @return true if successful, false if failed
+         */
+        boolean deletePayroll(String payrollId) throws RemoteException;
 }

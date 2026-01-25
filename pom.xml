@@ -31,7 +31,7 @@
     -->
     <properties>
         <!-- Java version for compilation (using release for strict compatibility) -->
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.release>17</maven.compiler.release>
         <!-- Character encoding for source files -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>

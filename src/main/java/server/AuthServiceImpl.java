@@ -7,10 +7,13 @@ import java.rmi.server.UnicastRemoteObject;
 /**
  * AuthServiceImpl - Remote Object Implementation
  *
- * This class implements the AuthInterface and provides the actual functionality.
- * - Extends UnicastRemoteObject to make it a remote object (can be called remotely)
+ * This class implements the AuthInterface and provides the actual
+ * functionality.
+ * - Extends UnicastRemoteObject to make it a remote object (can be called
+ * remotely)
  * - Implements AuthInterface (the contract)
- * - Acts as a BRIDGE between RMI calls and the actual business logic (AuthService)
+ * - Acts as a BRIDGE between RMI calls and the actual business logic
+ * (AuthService)
  *
  * Flow: Client -> AuthInterface -> AuthServiceImpl -> AuthService -> Firebase
  */
@@ -53,7 +56,8 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
     }
 
     @Override
-    public String addEmployee(String email, String password, String firstName, String lastName, String icPassport, String role) throws RemoteException {
+    public String addEmployee(String email, String password, String firstName, String lastName, String icPassport,
+            String role) throws RemoteException {
         System.out.println("Server: Adding employee - " + email);
         return authService.addEmployee(email, password, firstName, lastName, icPassport, role);
     }
@@ -65,9 +69,22 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
     }
 
     @Override
-    public boolean updateEmployee(String uid, String firstName, String lastName, String icPassport, String role) throws RemoteException {
+    public boolean updateEmployee(String uid, String firstName, String lastName, String icPassport, String role)
+            throws RemoteException {
         System.out.println("Server: Updating employee - " + uid);
         return authService.updateEmployee(uid, firstName, lastName, icPassport, role);
+    }
+
+    @Override
+    public boolean updateOwnProfile(String uid, String email, String firstName, String lastName, String icPassport)
+            throws RemoteException {
+        System.out.println("Server: Updating own profile - " + uid);
+        return authService.updateOwnProfile(uid, email, firstName, lastName, icPassport);
+    }
+
+    @Override
+    public String getEmployeeRaw(String uid) throws RemoteException {
+        return authService.getEmployeeRaw(uid);
     }
 
     @Override
@@ -98,7 +115,8 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
     }
 
     @Override
-    public boolean updatePayroll(String payrollId, double salary, String monthEntry, String yearEntry) throws RemoteException {
+    public boolean updatePayroll(String payrollId, double salary, String monthEntry, String yearEntry)
+            throws RemoteException {
         System.out.println("Server: Updating payroll - " + payrollId);
         return authService.updatePayroll(payrollId, salary, monthEntry, yearEntry);
     }
