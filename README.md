@@ -1,3 +1,7 @@
+### 2. Start the RMI Client (in a separate terminal)
+# Run server
+mvn exec:java -Dexec.mainClass="server.RMIServer"
+# Compile
 Distributed Computer System Assignment
 # RMI Employee Management System
 
@@ -36,20 +40,6 @@ src/main/java/
 ```
 
 ## How to Run
-
-### 1. Start the RMI Server
-```bash
-# Compile
-mvn clean compile
-
-# Run server
-mvn exec:java -Dexec.mainClass="server.RMIServer"
-```
-
-### 2. Start the RMI Client (in a separate terminal)
-```bash
-mvn exec:java -Dexec.mainClass="server.RMIClient"
-```
 
 ### Or run from IDE:
 1. Run `server.RMIServer` first

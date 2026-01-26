@@ -1092,4 +1092,235 @@ public class AuthService {
         }
         return 0.0;
     }
+
+    /**
+     * Helper: Extract integer value from Firestore JSON response
+     * Handles both integerValue and doubleValue formats
+     */
+    private int getIntField(JsonObject fields, String name) {
+        if (fields != null && fields.has(name)) {
+            JsonObject field = fields.getAsJsonObject(name);
+            if (field.has("integerValue")) {
+                return field.get("integerValue").getAsInt();
+            } else if (field.has("doubleValue")) {
+                return (int) field.get("doubleValue").getAsDouble();
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Helper: Create Firestore integer value object
+     * Firestore REST API requires: {"integerValue": 123}
+     */
+    private JsonObject integerValue(int value) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("integerValue", value);
+        return obj;
+    }
+
+    /**
+     * Helper: Create Firestore timestamp value object
+     * Firestore REST API requires: {"timestampValue": "2024-01-01T00:00:00Z"}
+     */
+    private JsonObject timestampValue(String isoTimestamp) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("timestampValue", isoTimestamp);
+        return obj;
+    }
+
+    // ==================== LEAVE MANAGEMENT METHODS ====================
+    // These methods handle the Leaves collection in Firestore
+
+    /**
+     * Apply for leave - Creates a new leave request in Firestore
+     * Status is automatically set to "Pending"
+     *
+     * @param userId    Employee's UID
+     * @param leaveType Type of leave ("annual" | "emergency" | "medical")
+     * @param startDate Start date of leave (format: YYYY-MM-DD)
+     * @param endDate   End date of leave (format: YYYY-MM-DD)
+     * @param totalDays Total number of leave days
+     * @param reason    Reason for leave
+     * @return Success/error message
+     */
+    public String applyLeave(String userId, String leaveType, String startDate, String endDate, int totalDays,
+            String reason) {
+        try {
+            // Validate leave type
+            String lowerLeaveType = leaveType.toLowerCase();
+            if (!lowerLeaveType.equals("annual") && !lowerLeaveType.equals("emergency")
+                    && !lowerLeaveType.equals("medical")) {
+                return "Invalid leave type. Please choose 'annual', 'emergency', or 'medical'.";
+            }
+
+            // Validate dates
+            if (startDate == null || startDate.trim().isEmpty()) {
+                return "Start date is required.";
+            }
+            if (endDate == null || endDate.trim().isEmpty()) {
+                return "End date is required.";
+            }
+
+            // Validate total days
+            if (totalDays <= 0) {
+                return "Total days must be greater than 0.";
+            }
+
+            // Validate reason
+            if (reason == null || reason.trim().isEmpty()) {
+                return "Reason is required.";
+            }
+
+            // Generate leave ID
+            String leaveId = "leave_" + System.currentTimeMillis() + "_" +
+                    java.util.UUID.randomUUID().toString().substring(0, 8);
+
+            // Get current timestamp in ISO format
+            java.time.Instant now = java.time.Instant.now();
+            String dateCreatedAt = now.toString();
+
+            // Create leave document
+            URL url = URI.create(FIRESTORE_URL + "/Leaves?documentId=" + leaveId).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            JsonObject fields = new JsonObject();
+            fields.add("leave_id", stringValue(leaveId));
+            fields.add("userid", stringValue(userId));
+            fields.add("leave_type", stringValue(lowerLeaveType));
+            fields.add("start_date", stringValue(startDate));
+            fields.add("end_date", stringValue(endDate));
+            fields.add("total_days", integerValue(totalDays));
+            fields.add("reason", stringValue(reason));
+            fields.add("status", stringValue("Pending")); // Default status is Pending
+            fields.add("date_created_at", timestampValue(dateCreatedAt));
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", fields);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = conn.getResponseCode();
+            if (code == 200 || code == 201) {
+                return "Leave application submitted successfully!\n" +
+                        "Leave ID: " + leaveId + "\n" +
+                        "Status: Pending (awaiting HR approval)";
+            } else {
+                String error = readErrorResponse(conn);
+                System.out.println("Firestore Error: " + error);
+                return "Failed to submit leave application. Please try again.";
+            }
+
+        } catch (Exception e) {
+            System.out.println("Apply Leave Error: " + e.getMessage());
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    /**
+     * Get all leave applications for a specific employee
+     *
+     * @param userId Employee's UID
+     * @return Formatted string with leave history
+     */
+    public String getLeavesByUserId(String userId) {
+        try {
+            URL url = URI.create(FIRESTORE_URL + "/Leaves").toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                // Get employee info
+                String employeeInfo = getEmployeeNameAndEmail(userId);
+
+                StringBuilder result = new StringBuilder();
+                result.append("========================================\n");
+                result.append("           MY LEAVE HISTORY\n");
+                result.append("========================================\n");
+                result.append("Employee: ").append(employeeInfo).append("\n");
+                result.append("----------------------------------------");
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+                    int count = 1;
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String docUserId = getField(fields, "userid");
+                        if (!userId.equals(docUserId)) {
+                            continue;
+                        }
+
+                        String leaveId = getField(fields, "leave_id");
+                        String leaveType = getField(fields, "leave_type");
+                        String startDate = getField(fields, "start_date");
+                        String endDate = getField(fields, "end_date");
+                        int totalDays = getIntField(fields, "total_days");
+                        String reason = getField(fields, "reason");
+                        String status = getField(fields, "status");
+
+                        result.append("\n[").append(count++).append("]\n");
+                        result.append("Leave ID    : ").append(leaveId).append("\n");
+                        result.append("Type        : ").append(capitalizeFirst(leaveType)).append("\n");
+                        result.append("Period      : ").append(startDate).append(" to ").append(endDate).append("\n");
+                        result.append("Total Days  : ").append(totalDays).append("\n");
+                        result.append("Reason      : ").append(reason).append("\n");
+                        result.append("Status      : ").append(getStatusDisplay(status)).append("\n");
+                        result.append("----------------------------------------");
+                    }
+                    if (count == 1) {
+                        result.append("\nNo leave applications found.\n");
+                        result.append("----------------------------------------");
+                    }
+                } else {
+                    result.append("\nNo leave applications found.\n");
+                    result.append("----------------------------------------");
+                }
+                result.append("\n========================================");
+                return result.toString();
+            }
+            return "Failed to get leave history.";
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    /**
+     * Helper: Capitalize first letter of a string
+     */
+    private String capitalizeFirst(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
+    }
+
+    /**
+     * Helper: Get formatted status display with visual indicator
+     */
+    private String getStatusDisplay(String status) {
+        if (status == null) {
+            return "Unknown";
+        }
+        switch (status.toLowerCase()) {
+            case "pending":
+                return "⏳ Pending";
+            case "approved":
+                return "✅ Approved";
+            case "rejected":
+                return "❌ Rejected";
+            default:
+                return status;
+        }
+    }
 }

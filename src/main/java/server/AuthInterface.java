@@ -131,4 +131,29 @@ public interface AuthInterface extends Remote {
          * @return true if successful, false if failed
          */
         boolean deletePayroll(String payrollId) throws RemoteException;
+
+        // ==================== LEAVE MANAGEMENT OPERATIONS ====================
+
+        /**
+         * Apply for leave (Employee only)
+         * Creates a new leave request with status "Pending"
+         *
+         * @param userId    Employee's UID
+         * @param leaveType Type of leave ("annual" | "emergency" | "medical")
+         * @param startDate Start date of leave (format: YYYY-MM-DD)
+         * @param endDate   End date of leave (format: YYYY-MM-DD)
+         * @param totalDays Total number of leave days
+         * @param reason    Reason for leave
+         * @return Success/error message
+         */
+        String applyLeave(String userId, String leaveType, String startDate, String endDate, int totalDays,
+                        String reason) throws RemoteException;
+
+        /**
+         * Get all leave applications for a specific employee
+         *
+         * @param userId Employee's UID
+         * @return Formatted string with leave history
+         */
+        String getLeavesByUserId(String userId) throws RemoteException;
 }

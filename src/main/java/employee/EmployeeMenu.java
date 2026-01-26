@@ -50,7 +50,8 @@ public class EmployeeMenu {
                 System.out.println("1. View My Profile");
                 System.out.println("2. View My Payroll");
                 System.out.println("3. Update My Profile");
-                System.out.println("4. Logout");
+                System.out.println("4. Apply for Leave");
+                System.out.println("5. Logout");
                 System.out.println("----------------------------------------");
                 System.out.print("Choice: ");
 
@@ -68,6 +69,9 @@ public class EmployeeMenu {
                         updateProfile(uid, scanner);
                         break;
                     case "4":
+                        manageLeave(scanner, uid); // New leave management feature
+                        break;
+                    case "5":
                         running = false; // Exit the loop
                         System.out.println("\nLogged out. Goodbye!");
                         break;
@@ -198,4 +202,258 @@ public class EmployeeMenu {
             System.out.println("Error: " + e.getMessage());
         }
     }
+
+    // ==================== LEAVE MANAGEMENT ====================
+
+    /**
+     * Leave management submenu for employees
+     * Options: Apply for new leave, View leave history
+     *
+     * @param scanner Shared Scanner
+     * @param uid     Current user's UID
+     */
+    private static void manageLeave(Scanner scanner, String uid) {
+        boolean running = true;
+        while (running) {
+            try {
+                System.out.println("\n========================================");
+                System.out.println("           LEAVE MANAGEMENT");
+                System.out.println("========================================");
+                System.out.println("1. Apply for Leave");
+                System.out.println("2. View My Leave History");
+                System.out.println("3. Back to Main Menu");
+                System.out.println("----------------------------------------");
+                System.out.print("Choice: ");
+
+                String choice = scanner.nextLine();
+
+                switch (choice) {
+                    case "1":
+                        applyForLeave(scanner, uid);
+                        break;
+                    case "2":
+                        viewLeaveHistory(uid);
+                        break;
+                    case "3":
+                        running = false;
+                        break;
+                    default:
+                        System.out.println("\nInvalid choice.\n");
+                }
+
+            } catch (Exception e) {
+                System.out.println("Error: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Apply for a new leave - Prompts user for leave details
+     * Validates all inputs before submission
+     *
+     * @param scanner Shared Scanner
+     * @param uid     Current user's UID
+     */
+    private static void applyForLeave(Scanner scanner, String uid) {
+        try {
+            System.out.println("\n========================================");
+            System.out.println("           APPLY FOR LEAVE");
+            System.out.println("========================================");
+
+            // Step 1: Select leave type
+            System.out.println("\nSelect Leave Type:");
+            System.out.println("1. Annual Leave");
+            System.out.println("2. Emergency Leave");
+            System.out.println("3. Medical Leave");
+            System.out.println("----------------------------------------");
+            System.out.print("Choice (1-3): ");
+            String typeChoice = scanner.nextLine();
+
+            String leaveType;
+            switch (typeChoice) {
+                case "1":
+                    leaveType = "annual";
+                    break;
+                case "2":
+                    leaveType = "emergency";
+                    break;
+                case "3":
+                    leaveType = "medical";
+                    break;
+                default:
+                    System.out.println("\nInvalid leave type. Please try again.");
+                    return;
+            }
+
+            // Step 2: Get start date
+            System.out.println("\nEnter Start Date. Please use YYYY-MM-DD (e.g., 2026-02-05)");
+            System.out.print("Start Date: ");
+            String startDate = scanner.nextLine().trim();
+
+            // Validate start date format
+            if (!isValidDateFormat(startDate)) {
+                System.out.println("\nInvalid date format. Please use YYYY-MM-DD (e.g., 2026-02-05)");
+                return;
+            }
+
+            // Step 3: Get end date
+            System.out.println("\nEnter End Date (format: YYYY-MM-DD)");
+            System.out.print("End Date: ");
+            String endDate = scanner.nextLine().trim();
+
+            // Validate end date format
+            if (!isValidDateFormat(endDate)) {
+                System.out.println("\nInvalid date format. Please use YYYY-MM-DD (e.g., 2026-02-20)");
+                return;
+            }
+
+            // Step 4: Calculate/confirm total days
+            int calculatedDays = calculateDaysBetween(startDate, endDate);
+            if (calculatedDays < 0) {
+                System.out.println("\nEnd date cannot be before start date.");
+                return;
+            }
+            if (calculatedDays == 0) {
+                calculatedDays = 1; // Same day leave is 1 day
+            } else {
+                calculatedDays = calculatedDays + 1; // Include both start and end dates
+            }
+
+            System.out.println("\nCalculated Total Days: " + calculatedDays);
+            System.out.print("Confirm total days (Enter to accept, or type a different number): ");
+            String daysInput = scanner.nextLine().trim();
+
+            int totalDays;
+            if (daysInput.isEmpty()) {
+                totalDays = calculatedDays;
+            } else {
+                try {
+                    totalDays = Integer.parseInt(daysInput);
+                    if (totalDays <= 0) {
+                        System.out.println("\nTotal days must be greater than 0.");
+                        return;
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("\nInvalid number format.");
+                    return;
+                }
+            }
+
+            // Step 5: Get reason
+            System.out.println("\nEnter Reason for Leave:");
+            System.out.print("Reason: ");
+            String reason = scanner.nextLine().trim();
+
+            if (reason.isEmpty()) {
+                System.out.println("\nReason is required.");
+                return;
+            }
+
+            // Step 6: Show summary and confirm
+            System.out.println("\n========================================");
+            System.out.println("        LEAVE APPLICATION SUMMARY");
+            System.out.println("========================================");
+            System.out.println("Leave Type  : " + capitalizeFirst(leaveType));
+            System.out.println("Start Date  : " + startDate);
+            System.out.println("End Date    : " + endDate);
+            System.out.println("Total Days  : " + totalDays);
+            System.out.println("Reason      : " + reason);
+            System.out.println("Status      : Pending (auto-set)");
+            System.out.println("========================================");
+            System.out.print("\nSubmit this application? (yes/no): ");
+            String confirm = scanner.nextLine().trim();
+
+            if (!"yes".equalsIgnoreCase(confirm)) {
+                System.out.println("\nLeave application cancelled.");
+                return;
+            }
+
+            // Step 7: Submit via RMI call
+            String result = authService.applyLeave(uid, leaveType, startDate, endDate, totalDays, reason);
+            System.out.println("\n" + result);
+
+        } catch (java.rmi.RemoteException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * View leave history for the current employee
+     *
+     * @param uid Current user's UID
+     */
+    private static void viewLeaveHistory(String uid) {
+        try {
+            String history = authService.getLeavesByUserId(uid);
+            System.out.println("\n" + history);
+        } catch (java.rmi.RemoteException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    // ==================== HELPER METHODS FOR LEAVE ====================
+
+    /**
+     * Validate date format (YYYY-MM-DD)
+     *
+     * @param date Date string to validate
+     * @return true if valid format
+     */
+    private static boolean isValidDateFormat(String date) {
+        if (date == null || date.length() != 10) {
+            return false;
+        }
+        try {
+            // Check format matches YYYY-MM-DD
+            if (date.charAt(4) != '-' || date.charAt(7) != '-') {
+                return false;
+            }
+            int year = Integer.parseInt(date.substring(0, 4));
+            int month = Integer.parseInt(date.substring(5, 7));
+            int day = Integer.parseInt(date.substring(8, 10));
+
+            // Basic validation
+            if (year < 2000 || year > 2100)
+                return false;
+            if (month < 1 || month > 12)
+                return false;
+            if (day < 1 || day > 31)
+                return false;
+
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Calculate days between two dates
+     *
+     * @param startDate Start date (YYYY-MM-DD)
+     * @param endDate   End date (YYYY-MM-DD)
+     * @return Number of days between dates (negative if end is before start)
+     */
+    private static int calculateDaysBetween(String startDate, String endDate) {
+        try {
+            java.time.LocalDate start = java.time.LocalDate.parse(startDate);
+            java.time.LocalDate end = java.time.LocalDate.parse(endDate);
+            return (int) java.time.temporal.ChronoUnit.DAYS.between(start, end);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Capitalize first letter of a string
+     *
+     * @param str Input string
+     * @return Capitalized string
+     */
+    private static String capitalizeFirst(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
+    }
 }
+

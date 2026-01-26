@@ -126,4 +126,20 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
         System.out.println("Server: Deleting payroll - " + payrollId);
         return authService.deletePayroll(payrollId);
     }
+
+    // ==================== LEAVE MANAGEMENT METHODS ====================
+    // These methods delegate to AuthService which handles Leaves collection
+
+    @Override
+    public String applyLeave(String userId, String leaveType, String startDate, String endDate, int totalDays,
+            String reason) throws RemoteException {
+        System.out.println("Server: Applying leave for user - " + userId);
+        return authService.applyLeave(userId, leaveType, startDate, endDate, totalDays, reason);
+    }
+
+    @Override
+    public String getLeavesByUserId(String userId) throws RemoteException {
+        System.out.println("Server: Getting leaves for user - " + userId);
+        return authService.getLeavesByUserId(userId);
+    }
 }
