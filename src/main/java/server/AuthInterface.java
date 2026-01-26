@@ -156,4 +156,22 @@ public interface AuthInterface extends Remote {
          * @return Formatted string with leave history
          */
         String getLeavesByUserId(String userId) throws RemoteException;
+
+        /**
+         * Get leave balance for a specific employee
+         * Also checks and resets if new year has begun
+         *
+         * @param userId Employee's UID
+         * @return Formatted string with leave balance details
+         */
+        String getLeaveBalance(String userId) throws RemoteException;
+
+        /**
+         * Check and reset leave balance if we are in a new year
+         * Called when employee logs in or accesses leave features
+         *
+         * @param userId Employee's UID
+         * @return true if reset was performed or no reset needed
+         */
+        boolean checkAndResetLeaveBalance(String userId) throws RemoteException;
 }

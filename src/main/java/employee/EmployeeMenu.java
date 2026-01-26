@@ -207,13 +207,22 @@ public class EmployeeMenu {
 
     /**
      * Leave management submenu for employees
-     * Options: Apply for new leave, View leave history
+     * Options: Apply for new leave, View leave history, View leave balance
+     * Automatically checks and resets leave balance if new year
      *
      * @param scanner Shared Scanner
      * @param uid     Current user's UID
      */
     private static void manageLeave(Scanner scanner, String uid) {
         boolean running = true;
+
+        // Check and reset leave balance on entry (handles new year reset)
+        try {
+            authService.checkAndResetLeaveBalance(uid);
+        } catch (java.rmi.RemoteException e) {
+            System.out.println("Warning: Could not verify leave balance - " + e.getMessage());
+        }
+
         while (running) {
             try {
                 System.out.println("\n========================================");
@@ -221,7 +230,8 @@ public class EmployeeMenu {
                 System.out.println("========================================");
                 System.out.println("1. Apply for Leave");
                 System.out.println("2. View My Leave History");
-                System.out.println("3. Back to Main Menu");
+                System.out.println("3. View My Leave Balance");
+                System.out.println("4. Back to Main Menu");
                 System.out.println("----------------------------------------");
                 System.out.print("Choice: ");
 
@@ -235,6 +245,9 @@ public class EmployeeMenu {
                         viewLeaveHistory(uid);
                         break;
                     case "3":
+                        viewLeaveBalance(uid);
+                        break;
+                    case "4":
                         running = false;
                         break;
                     default:
@@ -386,6 +399,21 @@ public class EmployeeMenu {
         try {
             String history = authService.getLeavesByUserId(uid);
             System.out.println("\n" + history);
+        } catch (java.rmi.RemoteException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * View leave balance for the current employee
+     * Shows remaining days for each leave type
+     *
+     * @param uid Current user's UID
+     */
+    private static void viewLeaveBalance(String uid) {
+        try {
+            String balance = authService.getLeaveBalance(uid);
+            System.out.println("\n" + balance);
         } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }

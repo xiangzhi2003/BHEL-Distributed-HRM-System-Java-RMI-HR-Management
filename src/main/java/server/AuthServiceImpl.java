@@ -142,4 +142,16 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
         System.out.println("Server: Getting leaves for user - " + userId);
         return authService.getLeavesByUserId(userId);
     }
+
+    @Override
+    public String getLeaveBalance(String userId) throws RemoteException {
+        System.out.println("Server: Getting leave balance for user - " + userId);
+        return authService.getLeaveBalance(userId);
+    }
+
+    @Override
+    public boolean checkAndResetLeaveBalance(String userId) throws RemoteException {
+        System.out.println("Server: Checking/resetting leave balance for user - " + userId);
+        return authService.checkAndResetLeaveBalance(userId);
+    }
 }

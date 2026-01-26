@@ -210,7 +210,8 @@ public class AuthService {
      * Add new employee to the system
      * Step 1: Create user in Firebase Auth (signup)
      * Step 2: Add user data to Firestore /users collection
-     * 
+     * Step 3: Create Leave_Balance document with default values
+     *
      * @return Success/error message
      */
     public String addEmployee(String email, String password, String firstName, String lastName, String icPassport,
@@ -240,8 +241,13 @@ public class AuthService {
                 // Step 2: Add user data to Firestore
                 boolean firestoreSuccess = addUserToFirestore(uid, email, firstName, lastName, icPassport, role);
 
-                if (firestoreSuccess) {
+                // Step 3: Create Leave_Balance document for the new employee
+                boolean leaveBalanceSuccess = createLeaveBalance(uid);
+
+                if (firestoreSuccess && leaveBalanceSuccess) {
                     return "Employee added successfully! UID: " + uid;
+                } else if (firestoreSuccess) {
+                    return "Employee created but Leave Balance creation failed. UID: " + uid;
                 } else {
                     return "Auth created but Firestore failed.";
                 }
@@ -298,6 +304,248 @@ public class AuthService {
         } catch (java.io.IOException e) {
             System.out.println("Firestore Error: " + e.getMessage());
             return false;
+        }
+    }
+
+    // ==================== LEAVE BALANCE METHODS ====================
+
+    /**
+     * Create Leave_Balance document for a new employee
+     * Sets default values: 10 days each for annual, emergency, medical leave
+     * Automatically sets current year
+     *
+     * @param userId Employee's UID
+     * @return true if successful
+     */
+    private boolean createLeaveBalance(String userId) {
+        try {
+            // Get current year
+            String currentYear = String.valueOf(java.time.Year.now().getValue());
+
+            // Generate unique leave_balance_id
+            String leaveBalanceId = "lb_" + userId.substring(0, Math.min(8, userId.length())) + "_" + currentYear;
+
+            URL url = URI.create(FIRESTORE_URL + "/Leave_Balance?documentId=" + leaveBalanceId).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            JsonObject fields = new JsonObject();
+            fields.add("leave_balance_id", stringValue(leaveBalanceId));
+            fields.add("userid", stringValue(userId));
+            fields.add("year", stringValue(currentYear));
+            fields.add("annual_leave", integerValue(10));      // Default 10 days
+            fields.add("emergency_leave", integerValue(10));   // Default 10 days
+            fields.add("medical_leave", integerValue(10));     // Default 10 days
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", fields);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = conn.getResponseCode();
+            if (code == 200 || code == 201) {
+                System.out.println("Leave Balance created for user: " + userId + " (Year: " + currentYear + ")");
+                return true;
+            } else {
+                String error = readErrorResponse(conn);
+                System.out.println("Failed to create Leave Balance: " + error);
+                return false;
+            }
+
+        } catch (Exception e) {
+            System.out.println("Create Leave Balance Error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check and reset leave balance if we are in a new year
+     * Called when employee logs in or accesses leave features
+     *
+     * @param userId Employee's UID
+     * @return true if reset was performed or no reset needed
+     */
+    public boolean checkAndResetLeaveBalance(String userId) {
+        try {
+            String currentYear = String.valueOf(java.time.Year.now().getValue());
+
+            // Get existing leave balance for this user
+            URL url = URI.create(FIRESTORE_URL + "/Leave_Balance").toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+                    boolean foundForUser = false;
+                    boolean needsReset = false;
+                    String existingLeaveBalanceId = null;
+
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String docUserId = getField(fields, "userid");
+                        if (userId.equals(docUserId)) {
+                            foundForUser = true;
+                            String docYear = getField(fields, "year");
+                            existingLeaveBalanceId = getField(fields, "leave_balance_id");
+
+                            // Check if year is different (new year)
+                            if (!currentYear.equals(docYear)) {
+                                needsReset = true;
+                            }
+                            break;
+                        }
+                    }
+
+                    // If no leave balance exists, create one
+                    if (!foundForUser) {
+                        System.out.println("No Leave Balance found for user " + userId + ". Creating new one...");
+                        return createLeaveBalance(userId);
+                    }
+
+                    // If year changed, reset the leave balance
+                    if (needsReset && existingLeaveBalanceId != null) {
+                        System.out.println("New year detected! Resetting leave balance for user " + userId);
+                        return resetLeaveBalance(userId, existingLeaveBalanceId, currentYear);
+                    }
+
+                    // No reset needed
+                    return true;
+                } else {
+                    // No documents at all, create new leave balance
+                    return createLeaveBalance(userId);
+                }
+            }
+            return false;
+
+        } catch (Exception e) {
+            System.out.println("Check Leave Balance Error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Reset leave balance to default values for a new year
+     * Uses delete-and-recreate approach
+     *
+     * @param userId          Employee's UID
+     * @param leaveBalanceId  Existing leave balance ID
+     * @param newYear         The new year value
+     * @return true if successful
+     */
+    private boolean resetLeaveBalance(String userId, String leaveBalanceId, String newYear) {
+        try {
+            // Delete the old leave balance document
+            URL deleteUrl = URI.create(FIRESTORE_URL + "/Leave_Balance/" + leaveBalanceId).toURL();
+            HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
+            deleteConn.setRequestMethod("DELETE");
+            deleteConn.getResponseCode(); // Execute delete
+
+            // Generate new leave_balance_id for the new year
+            String newLeaveBalanceId = "lb_" + userId.substring(0, Math.min(8, userId.length())) + "_" + newYear;
+
+            // Create new leave balance with reset values
+            URL createUrl = URI.create(FIRESTORE_URL + "/Leave_Balance?documentId=" + newLeaveBalanceId).toURL();
+            HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
+            createConn.setRequestMethod("POST");
+            createConn.setRequestProperty("Content-Type", "application/json");
+            createConn.setDoOutput(true);
+
+            JsonObject fields = new JsonObject();
+            fields.add("leave_balance_id", stringValue(newLeaveBalanceId));
+            fields.add("userid", stringValue(userId));
+            fields.add("year", stringValue(newYear));
+            fields.add("annual_leave", integerValue(10));      // Reset to 10 days
+            fields.add("emergency_leave", integerValue(10));   // Reset to 10 days
+            fields.add("medical_leave", integerValue(10));     // Reset to 10 days
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", fields);
+
+            try (OutputStream os = createConn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = createConn.getResponseCode();
+            if (code == 200 || code == 201) {
+                System.out.println("Leave Balance reset for user: " + userId + " (Year: " + newYear + ")");
+                return true;
+            }
+            return false;
+
+        } catch (Exception e) {
+            System.out.println("Reset Leave Balance Error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get leave balance for a specific employee
+     * Also checks and resets if new year
+     *
+     * @param userId Employee's UID
+     * @return Formatted string with leave balance details
+     */
+    public String getLeaveBalance(String userId) {
+        try {
+            // First check and reset if needed (new year)
+            checkAndResetLeaveBalance(userId);
+
+            URL url = URI.create(FIRESTORE_URL + "/Leave_Balance").toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String docUserId = getField(fields, "userid");
+                        if (userId.equals(docUserId)) {
+                            String leaveBalanceId = getField(fields, "leave_balance_id");
+                            String year = getField(fields, "year");
+                            int annualLeave = getIntField(fields, "annual_leave");
+                            int emergencyLeave = getIntField(fields, "emergency_leave");
+                            int medicalLeave = getIntField(fields, "medical_leave");
+                            int totalLeave = annualLeave + emergencyLeave + medicalLeave;
+
+                            StringBuilder result = new StringBuilder();
+                            result.append("========================================\n");
+                            result.append("           MY LEAVE BALANCE\n");
+                            result.append("========================================\n");
+                            result.append("Year            : ").append(year).append("\n");
+                            result.append("----------------------------------------\n");
+                            result.append("Annual Leave    : ").append(annualLeave).append(" days\n");
+                            result.append("Emergency Leave : ").append(emergencyLeave).append(" days\n");
+                            result.append("Medical Leave   : ").append(medicalLeave).append(" days\n");
+                            result.append("----------------------------------------\n");
+                            result.append("Total Remaining : ").append(totalLeave).append(" days\n");
+                            result.append("========================================");
+                            return result.toString();
+                        }
+                    }
+                }
+                return "No leave balance found. Please contact HR.";
+            }
+            return "Failed to get leave balance.";
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
         }
     }
 
