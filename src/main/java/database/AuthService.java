@@ -1429,7 +1429,7 @@ public class AuthService {
             String dateCreatedAt = now.toString();
 
             // Create leave document
-            URL url = URI.create(FIRESTORE_URL + "/Leaves?documentId=" + leaveId).toURL();
+            URL url = URI.create(FIRESTORE_URL + "/Leave_Request?documentId=" + leaveId).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -1444,7 +1444,7 @@ public class AuthService {
             fields.add("total_days", integerValue(totalDays));
             fields.add("reason", stringValue(reason));
             fields.add("status", stringValue("Pending")); // Default status is Pending
-            fields.add("date_created_at", timestampValue(dateCreatedAt));
+            fields.add("date_created_at", stringValue(dateCreatedAt));
 
             JsonObject doc = new JsonObject();
             doc.add("fields", fields);
@@ -1478,7 +1478,7 @@ public class AuthService {
      */
     public String getLeavesByUserId(String userId) {
         try {
-            URL url = URI.create(FIRESTORE_URL + "/Leaves").toURL();
+            URL url = URI.create(FIRESTORE_URL + "/Leave_Request").toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
 

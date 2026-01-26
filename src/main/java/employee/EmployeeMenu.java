@@ -320,7 +320,7 @@ public class EmployeeMenu {
                 return;
             }
 
-            // Step 4: Calculate/confirm total days
+            // Step 4: Calculate total days automatically
             int calculatedDays = calculateDaysBetween(startDate, endDate);
             if (calculatedDays < 0) {
                 System.out.println("\nEnd date cannot be before start date.");
@@ -332,25 +332,7 @@ public class EmployeeMenu {
                 calculatedDays = calculatedDays + 1; // Include both start and end dates
             }
 
-            System.out.println("\nCalculated Total Days: " + calculatedDays);
-            System.out.print("Confirm total days (Enter to accept, or type a different number): ");
-            String daysInput = scanner.nextLine().trim();
-
-            int totalDays;
-            if (daysInput.isEmpty()) {
-                totalDays = calculatedDays;
-            } else {
-                try {
-                    totalDays = Integer.parseInt(daysInput);
-                    if (totalDays <= 0) {
-                        System.out.println("\nTotal days must be greater than 0.");
-                        return;
-                    }
-                } catch (NumberFormatException e) {
-                    System.out.println("\nInvalid number format.");
-                    return;
-                }
-            }
+            int totalDays = calculatedDays;
 
             // Step 5: Get reason
             System.out.println("\nEnter Reason for Leave:");
@@ -362,26 +344,7 @@ public class EmployeeMenu {
                 return;
             }
 
-            // Step 6: Show summary and confirm
-            System.out.println("\n========================================");
-            System.out.println("        LEAVE APPLICATION SUMMARY");
-            System.out.println("========================================");
-            System.out.println("Leave Type  : " + capitalizeFirst(leaveType));
-            System.out.println("Start Date  : " + startDate);
-            System.out.println("End Date    : " + endDate);
-            System.out.println("Total Days  : " + totalDays);
-            System.out.println("Reason      : " + reason);
-            System.out.println("Status      : Pending (auto-set)");
-            System.out.println("========================================");
-            System.out.print("\nSubmit this application? (yes/no): ");
-            String confirm = scanner.nextLine().trim();
-
-            if (!"yes".equalsIgnoreCase(confirm)) {
-                System.out.println("\nLeave application cancelled.");
-                return;
-            }
-
-            // Step 7: Submit via RMI call
+            // Step 6: Submit via RMI call (status will be automatically set to "Pending")
             String result = authService.applyLeave(uid, leaveType, startDate, endDate, totalDays, reason);
             System.out.println("\n" + result);
 
