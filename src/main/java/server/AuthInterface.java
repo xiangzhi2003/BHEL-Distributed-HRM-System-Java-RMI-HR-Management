@@ -183,4 +183,14 @@ public interface AuthInterface extends Remote {
          * @return true if reset was performed or no reset needed
          */
         boolean checkAndResetLeaveBalance(String userId) throws RemoteException;
+
+        // ==================== HR LEAVE MANAGEMENT ====================
+
+        /**
+         * Get all pending leave requests (HR only)
+         * Filters Leave_Request collection for status = "Pending"
+         *
+         * @return Formatted string with all pending leave requests
+         */
+        String getAllPendingLeaves() throws RemoteException;
 }

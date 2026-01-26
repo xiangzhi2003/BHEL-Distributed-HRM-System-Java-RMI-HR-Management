@@ -1597,6 +1597,75 @@ public class AuthService {
     }
 
     /**
+     * Get all pending leave requests (HR only)
+     * Filters Leave_Request collection for status = "Pending"
+     *
+     * @return Formatted string with all pending leave requests
+     */
+    public String getAllPendingLeaves() {
+        try {
+            URL url = URI.create(FIRESTORE_URL + "/Leave_Request").toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                StringBuilder result = new StringBuilder();
+                result.append("========================================\n");
+                result.append("      PENDING LEAVE REQUESTS\n");
+                result.append("========================================\n");
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+                    int count = 1;
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String status = getField(fields, "status");
+                        if (!"Pending".equalsIgnoreCase(status)) {
+                            continue; // Skip non-pending requests
+                        }
+
+                        String leaveId = getField(fields, "leave_id");
+                        String userId = getField(fields, "userid");
+                        String employeeInfo = getEmployeeNameAndEmail(userId);
+                        String leaveType = getField(fields, "leave_type");
+                        String startDate = getField(fields, "start_date");
+                        String endDate = getField(fields, "end_date");
+                        int totalDays = getIntField(fields, "total_days");
+                        String reason = getField(fields, "reason");
+                        String dateCreated = getField(fields, "date_created_at");
+
+                        result.append("\n[").append(count++).append("]\n");
+                        result.append("Leave ID    : ").append(leaveId).append("\n");
+                        result.append("Employee    : ").append(employeeInfo).append("\n");
+                        result.append("Type        : ").append(capitalizeFirst(leaveType)).append("\n");
+                        result.append("Period      : ").append(startDate).append(" to ").append(endDate).append("\n");
+                        result.append("Total Days  : ").append(totalDays).append("\n");
+                        result.append("Reason      : ").append(reason).append("\n");
+                        result.append("Applied On  : ").append(dateCreated.substring(0, 10)).append("\n");
+                        result.append("----------------------------------------");
+                    }
+                    if (count == 1) {
+                        result.append("\nNo pending leave requests.\n");
+                    }
+                } else {
+                    result.append("\nNo pending leave requests.\n");
+                }
+                result.append("\n========================================");
+                return result.toString();
+            }
+            return "Failed to fetch pending leave requests.";
+
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    /**
      * Helper: Capitalize first letter of a string
      */
     private String capitalizeFirst(String str) {

@@ -51,7 +51,8 @@ public class HRMenu {
                 System.out.println("3. Edit Employee");
                 System.out.println("4. Delete Employee");
                 System.out.println("5. Manage Payroll");
-                System.out.println("6. Logout");
+                System.out.println("6. View Pending Leave Requests");
+                System.out.println("7. Logout");
                 System.out.println("----------------------------------------");
                 System.out.print("Choice: ");
 
@@ -75,6 +76,9 @@ public class HRMenu {
                         managePayroll(scanner);
                         break;
                     case "6":
+                        viewPendingLeaveRequests();
+                        break;
+                    case "7":
                         running = false; // Exit the loop
                         System.out.println("\nLogged out. Goodbye!");
                         break;
@@ -472,6 +476,20 @@ public class HRMenu {
                 System.out.println("\nDelete cancelled.");
             }
 
+        } catch (java.rmi.RemoteException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    // ==================== LEAVE MANAGEMENT ====================
+
+    /**
+     * View all pending leave requests
+     */
+    private static void viewPendingLeaveRequests() {
+        try {
+            String result = authService.getAllPendingLeaves();
+            System.out.println("\n" + result);
         } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }
