@@ -167,6 +167,15 @@ public interface AuthInterface extends Remote {
         String getLeaveBalance(String userId) throws RemoteException;
 
         /**
+         * Get leave balance data as a Map for programmatic access
+         * Returns annual, emergency, and medical leave balances
+         *
+         * @param userId Employee's UID
+         * @return Map with keys: "annual", "emergency", "medical" (values as Integer)
+         */
+        java.util.Map<String, Integer> getLeaveBalanceData(String userId) throws RemoteException;
+
+        /**
          * Check and reset leave balance if we are in a new year
          * Called when employee logs in or accesses leave features
          *

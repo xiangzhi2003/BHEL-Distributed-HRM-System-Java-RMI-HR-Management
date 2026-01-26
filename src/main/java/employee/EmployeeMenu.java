@@ -273,11 +273,17 @@ public class EmployeeMenu {
             System.out.println("           APPLY FOR LEAVE");
             System.out.println("========================================");
 
-            // Step 1: Select leave type
+            // Get leave balance data
+            java.util.Map<String, Integer> balanceData = authService.getLeaveBalanceData(uid);
+            int annualBalance = balanceData.getOrDefault("annual", 0);
+            int emergencyBalance = balanceData.getOrDefault("emergency", 0);
+            int medicalBalance = balanceData.getOrDefault("medical", 0);
+
+            // Step 1: Select leave type (with balance display)
             System.out.println("\nSelect Leave Type:");
-            System.out.println("1. Annual Leave");
-            System.out.println("2. Emergency Leave");
-            System.out.println("3. Medical Leave");
+            System.out.println("1. Annual Leave (" + annualBalance + "/10)");
+            System.out.println("2. Emergency Leave (" + emergencyBalance + "/10)");
+            System.out.println("3. Medical Leave (" + medicalBalance + "/10)");
             System.out.println("----------------------------------------");
             System.out.print("Choice (1-3): ");
             String typeChoice = scanner.nextLine();

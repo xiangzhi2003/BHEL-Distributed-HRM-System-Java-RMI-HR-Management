@@ -550,6 +550,59 @@ public class AuthService {
     }
 
     /**
+     * Get leave balance data as a Map for programmatic access
+     * Returns annual, emergency, and medical leave balances
+     *
+     * @param userId Employee's UID
+     * @return Map with keys: "annual", "emergency", "medical" (values as Integer)
+     */
+    public java.util.Map<String, Integer> getLeaveBalanceData(String userId) {
+        java.util.Map<String, Integer> balanceMap = new java.util.HashMap<>();
+        balanceMap.put("annual", 0);
+        balanceMap.put("emergency", 0);
+        balanceMap.put("medical", 0);
+
+        try {
+            // First check and reset if needed (new year)
+            checkAndResetLeaveBalance(userId);
+
+            URL url = URI.create(FIRESTORE_URL + "/Leave_Balance").toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String docUserId = getField(fields, "userid");
+                        if (userId.equals(docUserId)) {
+                            int annualLeave = getIntField(fields, "annual_leave");
+                            int emergencyLeave = getIntField(fields, "emergency_leave");
+                            int medicalLeave = getIntField(fields, "medical_leave");
+
+                            balanceMap.put("annual", annualLeave);
+                            balanceMap.put("emergency", emergencyLeave);
+                            balanceMap.put("medical", medicalLeave);
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error getting leave balance data: " + e.getMessage());
+        }
+
+        return balanceMap;
+    }
+
+    /**
      * Get all employees from Firestore /users collection
      * Filters to only show users with role "employee" (not HR)
      * 

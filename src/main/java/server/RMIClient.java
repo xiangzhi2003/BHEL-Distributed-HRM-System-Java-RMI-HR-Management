@@ -27,63 +27,67 @@ public class RMIClient {
 
     public static void main(String[] args) {
         try (Scanner scanner = new Scanner(System.in)) {
-            System.out.println("========================================");
-            System.out.println("        COMPANY LOGIN SYSTEM");
-            System.out.println("========================================");
-            System.out.println();
-
-            // Step 1: Connect to RMI Registry on the server
-            // getRegistry() connects to an existing registry (created by server)
+            // Step 1: Connect to RMI Registry on the server (once at startup)
             Registry registry = LocateRegistry.getRegistry("localhost", 1099);
-
-            // Step 2: Look up the remote object by name "AuthService"
-            // This returns a stub (proxy) that forwards calls to the server
             authService = (AuthInterface) registry.lookup("AuthService");
 
-            // Step 3: Get login credentials from user
-            System.out.println("Please login to continue");
-            System.out.println("----------------------------------------");
-            System.out.print("Email: ");
-            String email = scanner.nextLine();
-            System.out.print("Password: ");
-            String password = scanner.nextLine();
-            System.out.println("----------------------------------------");
+            // Main application loop - allows logout and login again
+            boolean running = true;
+            while (running) {
+                System.out.println("========================================");
+                System.out.println("        COMPANY LOGIN SYSTEM");
+                System.out.println("========================================");
+                System.out.println();
 
-            // Step 4: Authenticate with Firebase (via RMI call to server)
-            // This call goes: Client -> RMI -> Server -> Firebase
-            String uid = authService.login(email, password);
+                // Step 2: Get login credentials from user
+                System.out.println("Please login to continue");
+                System.out.println("----------------------------------------");
+                System.out.print("Email: ");
+                String email = scanner.nextLine();
+                System.out.print("Password: ");
+                String password = scanner.nextLine();
+                System.out.println("----------------------------------------");
 
-            if (uid == null) {
-                System.out.println("Login Failed! Invalid email or password.");
-                return;
-            }
+                // Step 3: Authenticate with Firebase (via RMI call to server)
+                String uid = authService.login(email, password);
 
-            // Step 5: Get user's role from Firestore (via RMI call)
-            String role = authService.getRole(uid);
+                if (uid == null) {
+                    System.out.println("Login Failed! Invalid email or password.");
+                    System.out.println();
+                    continue; // Go back to login prompt
+                }
 
-            if (role == null) {
-                System.out.println("Login Failed! Role not found.");
-                return;
-            }
+                // Step 4: Get user's role from Firestore (via RMI call)
+                String role = authService.getRole(uid);
 
-            // Login successful - show user info
-            System.out.println();
-            System.out.println("========================================");
-            System.out.println("         LOGIN SUCCESSFUL!");
-            System.out.println("========================================");
-            System.out.println("Email: " + email);
-            System.out.println("UID: " + uid);
-            System.out.println("Role: " + role);
-            System.out.println("========================================");
-            System.out.println();
+                if (role == null) {
+                    System.out.println("Login Failed! Role not found.");
+                    System.out.println();
+                    continue; // Go back to login prompt
+                }
 
-            // Step 6: Redirect to appropriate menu based on role
-            if ("hr".equalsIgnoreCase(role)) {
-                HRMenu.show(scanner, uid, email);  // HR gets HR menu
-            } else if ("employee".equalsIgnoreCase(role)) {
-                EmployeeMenu.show(scanner, uid, email);  // Employee gets Employee menu
-            } else {
-                System.out.println("Unknown role: " + role);
+                // Login successful - show user info
+                System.out.println();
+                System.out.println("========================================");
+                System.out.println("         LOGIN SUCCESSFUL!");
+                System.out.println("========================================");
+                System.out.println("Email: " + email);
+                System.out.println("UID: " + uid);
+                System.out.println("Role: " + role);
+                System.out.println("========================================");
+                System.out.println();
+
+                // Step 5: Redirect to appropriate menu based on role
+                if ("hr".equalsIgnoreCase(role)) {
+                    HRMenu.show(scanner, uid, email);  // HR gets HR menu
+                } else if ("employee".equalsIgnoreCase(role)) {
+                    EmployeeMenu.show(scanner, uid, email);  // Employee gets Employee menu
+                } else {
+                    System.out.println("Unknown role: " + role);
+                }
+
+                // After logout from menu, loop continues and shows login again
+                System.out.println();
             }
 
         } catch (java.rmi.RemoteException | java.rmi.NotBoundException e) {
