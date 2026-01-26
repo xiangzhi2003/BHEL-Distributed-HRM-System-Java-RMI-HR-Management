@@ -193,4 +193,23 @@ public interface AuthInterface extends Remote {
          * @return Formatted string with all pending leave requests
          */
         String getAllPendingLeaves() throws RemoteException;
+
+        /**
+         * Approve a leave request
+         * Checks if employee has sufficient balance before approving
+         * Deducts leave days from appropriate leave type upon approval
+         *
+         * @param leaveId Leave request ID
+         * @return Success/error message
+         */
+        String approveLeave(String leaveId) throws RemoteException;
+
+        /**
+         * Reject a leave request
+         * No balance deduction occurs when rejecting
+         *
+         * @param leaveId Leave request ID
+         * @return Success/error message
+         */
+        String rejectLeave(String leaveId) throws RemoteException;
 }

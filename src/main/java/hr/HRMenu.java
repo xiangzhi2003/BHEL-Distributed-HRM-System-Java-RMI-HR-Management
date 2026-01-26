@@ -52,7 +52,8 @@ public class HRMenu {
                 System.out.println("4. Delete Employee");
                 System.out.println("5. Manage Payroll");
                 System.out.println("6. View Pending Leave Requests");
-                System.out.println("7. Logout");
+                System.out.println("7. Approve/Reject Leave");
+                System.out.println("8. Logout");
                 System.out.println("----------------------------------------");
                 System.out.print("Choice: ");
 
@@ -79,6 +80,9 @@ public class HRMenu {
                         viewPendingLeaveRequests();
                         break;
                     case "7":
+                        approveRejectLeave(scanner);
+                        break;
+                    case "8":
                         running = false; // Exit the loop
                         System.out.println("\nLogged out. Goodbye!");
                         break;
@@ -490,6 +494,86 @@ public class HRMenu {
         try {
             String result = authService.getAllPendingLeaves();
             System.out.println("\n" + result);
+        } catch (java.rmi.RemoteException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Approve or reject a leave request
+     */
+    private static void approveRejectLeave(Scanner scanner) {
+        try {
+            System.out.println("\n========================================");
+            System.out.println("      APPROVE/REJECT LEAVE REQUEST");
+            System.out.println("========================================");
+
+            // Show pending leave requests first
+            String pendingLeaves = authService.getAllPendingLeaves();
+            System.out.println(pendingLeaves);
+
+            if (pendingLeaves.contains("No pending leave requests")) {
+                return;
+            }
+
+            // Extract leave IDs from the output
+            java.util.List<String> leaveIds = new java.util.ArrayList<>();
+            String[] lines = pendingLeaves.split("\n");
+            for (String line : lines) {
+                if (line.contains("Leave ID    :")) {
+                    String leaveId = line.substring(line.indexOf(":") + 1).trim();
+                    leaveIds.add(leaveId);
+                }
+            }
+
+            System.out.println();
+            System.out.print("Enter request number (e.g., 1, 2, ...): ");
+            String numberInput = scanner.nextLine().trim();
+
+            if (numberInput.isEmpty()) {
+                System.out.println("Input cannot be empty.");
+                return;
+            }
+
+            int requestNumber;
+            try {
+                requestNumber = Integer.parseInt(numberInput);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number format.");
+                return;
+            }
+
+            if (requestNumber < 1 || requestNumber > leaveIds.size()) {
+                System.out.println("Invalid request number. Please enter a number between 1 and " + leaveIds.size());
+                return;
+            }
+
+            String leaveId = leaveIds.get(requestNumber - 1);
+            System.out.println("Selected: " + leaveId);
+
+            System.out.println("\n1. Approve");
+            System.out.println("2. Reject");
+            System.out.println("3. Cancel");
+            System.out.print("Choice: ");
+            String action = scanner.nextLine();
+
+            String result;
+            switch (action) {
+                case "1":
+                    result = authService.approveLeave(leaveId);
+                    System.out.println("\n" + result);
+                    break;
+                case "2":
+                    result = authService.rejectLeave(leaveId);
+                    System.out.println("\n" + result);
+                    break;
+                case "3":
+                    System.out.println("\nAction cancelled.");
+                    break;
+                default:
+                    System.out.println("\nInvalid choice.");
+            }
+
         } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
         }

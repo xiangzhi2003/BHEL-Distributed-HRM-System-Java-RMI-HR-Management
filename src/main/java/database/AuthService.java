@@ -1597,6 +1597,300 @@ public class AuthService {
     }
 
     /**
+     * Approve a leave request
+     * Checks if employee has sufficient balance before approving
+     * Deducts leave days from appropriate leave type upon approval
+     *
+     * @param leaveId Leave request ID
+     * @return Success/error message
+     */
+    public String approveLeave(String leaveId) {
+        try {
+            // Step 1: Get the leave request details
+            URL getUrl = URI.create(FIRESTORE_URL + "/Leave_Request/" + leaveId).toURL();
+            HttpURLConnection getConn = (HttpURLConnection) getUrl.openConnection();
+            getConn.setRequestMethod("GET");
+
+            if (getConn.getResponseCode() != 200) {
+                return "Leave request not found.";
+            }
+
+            String response = readResponse(getConn);
+            JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+            JsonObject fields = json.getAsJsonObject("fields");
+
+            String userId = getField(fields, "userid");
+            String leaveType = getField(fields, "leave_type");
+            int totalDays = getIntField(fields, "total_days");
+            String status = getField(fields, "status");
+            String startDate = getField(fields, "start_date");
+            String endDate = getField(fields, "end_date");
+            String reason = getField(fields, "reason");
+            String dateCreated = getField(fields, "date_created_at");
+
+            // Check if already processed
+            if (!"Pending".equalsIgnoreCase(status)) {
+                return "This leave request has already been " + status.toLowerCase() + ".";
+            }
+
+            // Step 2: Check leave balance
+            java.util.Map<String, Integer> balanceData = getLeaveBalanceData(userId);
+            int currentBalance;
+            String balanceField;
+
+            switch (leaveType.toLowerCase()) {
+                case "annual":
+                    currentBalance = balanceData.get("annual");
+                    balanceField = "annual_leave";
+                    break;
+                case "emergency":
+                    currentBalance = balanceData.get("emergency");
+                    balanceField = "emergency_leave";
+                    break;
+                case "medical":
+                    currentBalance = balanceData.get("medical");
+                    balanceField = "medical_leave";
+                    break;
+                default:
+                    return "Invalid leave type: " + leaveType;
+            }
+
+            // Check if sufficient balance
+            if (currentBalance < totalDays) {
+                return "Insufficient leave balance! Employee has " + currentBalance + 
+                       " days of " + capitalizeFirst(leaveType) + " leave, but requested " + totalDays + " days.\n" +
+                       "Cannot approve. Consider rejecting this request.";
+            }
+
+            // Step 3: Deduct from leave balance
+            boolean balanceDeducted = deductLeaveBalance(userId, leaveType, totalDays);
+            if (!balanceDeducted) {
+                return "Failed to deduct leave balance. Approval cancelled.";
+            }
+
+            // Step 4: Update leave request status to Approved (delete and recreate)
+            URL deleteUrl = URI.create(FIRESTORE_URL + "/Leave_Request/" + leaveId).toURL();
+            HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
+            deleteConn.setRequestMethod("DELETE");
+            deleteConn.getResponseCode();
+
+            URL createUrl = URI.create(FIRESTORE_URL + "/Leave_Request?documentId=" + leaveId).toURL();
+            HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
+            createConn.setRequestMethod("POST");
+            createConn.setRequestProperty("Content-Type", "application/json");
+            createConn.setDoOutput(true);
+
+            JsonObject newFields = new JsonObject();
+            newFields.add("leave_id", stringValue(leaveId));
+            newFields.add("userid", stringValue(userId));
+            newFields.add("leave_type", stringValue(leaveType));
+            newFields.add("start_date", stringValue(startDate));
+            newFields.add("end_date", stringValue(endDate));
+            newFields.add("total_days", integerValue(totalDays));
+            newFields.add("reason", stringValue(reason));
+            newFields.add("status", stringValue("Approved"));
+            newFields.add("date_created_at", stringValue(dateCreated));
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", newFields);
+
+            try (OutputStream os = createConn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = createConn.getResponseCode();
+            if (code == 200 || code == 201) {
+                return "Leave request APPROVED successfully!\n" +
+                       "Employee: " + getEmployeeNameAndEmail(userId) + "\n" +
+                       "Leave Type: " + capitalizeFirst(leaveType) + "\n" +
+                       "Days Deducted: " + totalDays + "\n" +
+                       "Remaining Balance: " + (currentBalance - totalDays) + " days";
+            } else {
+                return "Failed to update leave status.";
+            }
+
+        } catch (Exception e) {
+            System.out.println("Approve Leave Error: " + e.getMessage());
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    /**
+     * Reject a leave request
+     * No balance deduction occurs when rejecting
+     *
+     * @param leaveId Leave request ID
+     * @return Success/error message
+     */
+    public String rejectLeave(String leaveId) {
+        try {
+            // Step 1: Get the leave request details
+            URL getUrl = URI.create(FIRESTORE_URL + "/Leave_Request/" + leaveId).toURL();
+            HttpURLConnection getConn = (HttpURLConnection) getUrl.openConnection();
+            getConn.setRequestMethod("GET");
+
+            if (getConn.getResponseCode() != 200) {
+                return "Leave request not found.";
+            }
+
+            String response = readResponse(getConn);
+            JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+            JsonObject fields = json.getAsJsonObject("fields");
+
+            String userId = getField(fields, "userid");
+            String leaveType = getField(fields, "leave_type");
+            int totalDays = getIntField(fields, "total_days");
+            String status = getField(fields, "status");
+            String startDate = getField(fields, "start_date");
+            String endDate = getField(fields, "end_date");
+            String reason = getField(fields, "reason");
+            String dateCreated = getField(fields, "date_created_at");
+
+            // Check if already processed
+            if (!"Pending".equalsIgnoreCase(status)) {
+                return "This leave request has already been " + status.toLowerCase() + ".";
+            }
+
+            // Step 2: Update leave request status to Rejected (delete and recreate)
+            URL deleteUrl = URI.create(FIRESTORE_URL + "/Leave_Request/" + leaveId).toURL();
+            HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
+            deleteConn.setRequestMethod("DELETE");
+            deleteConn.getResponseCode();
+
+            URL createUrl = URI.create(FIRESTORE_URL + "/Leave_Request?documentId=" + leaveId).toURL();
+            HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
+            createConn.setRequestMethod("POST");
+            createConn.setRequestProperty("Content-Type", "application/json");
+            createConn.setDoOutput(true);
+
+            JsonObject newFields = new JsonObject();
+            newFields.add("leave_id", stringValue(leaveId));
+            newFields.add("userid", stringValue(userId));
+            newFields.add("leave_type", stringValue(leaveType));
+            newFields.add("start_date", stringValue(startDate));
+            newFields.add("end_date", stringValue(endDate));
+            newFields.add("total_days", integerValue(totalDays));
+            newFields.add("reason", stringValue(reason));
+            newFields.add("status", stringValue("Rejected"));
+            newFields.add("date_created_at", stringValue(dateCreated));
+
+            JsonObject doc = new JsonObject();
+            doc.add("fields", newFields);
+
+            try (OutputStream os = createConn.getOutputStream()) {
+                os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
+            }
+
+            int code = createConn.getResponseCode();
+            if (code == 200 || code == 201) {
+                return "Leave request REJECTED successfully!\n" +
+                       "Employee: " + getEmployeeNameAndEmail(userId) + "\n" +
+                       "Leave Type: " + capitalizeFirst(leaveType) + "\n" +
+                       "Days: " + totalDays + " (No deduction - request rejected)";
+            } else {
+                return "Failed to update leave status.";
+            }
+
+        } catch (Exception e) {
+            System.out.println("Reject Leave Error: " + e.getMessage());
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    /**
+     * Helper: Deduct leave balance from employee's Leave_Balance
+     * Called when approving a leave request
+     *
+     * @param userId Employee's UID
+     * @param leaveType Type of leave (annual, emergency, medical)
+     * @param daysToDeduct Number of days to deduct
+     * @return true if successful
+     */
+    private boolean deductLeaveBalance(String userId, String leaveType, int daysToDeduct) {
+        try {
+            // Get current leave balance document
+            URL url = URI.create(FIRESTORE_URL + "/Leave_Balance").toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String docUserId = getField(fields, "userid");
+                        if (userId.equals(docUserId)) {
+                            String leaveBalanceId = getField(fields, "leave_balance_id");
+                            String year = getField(fields, "year");
+                            int annualLeave = getIntField(fields, "annual_leave");
+                            int emergencyLeave = getIntField(fields, "emergency_leave");
+                            int medicalLeave = getIntField(fields, "medical_leave");
+
+                            // Deduct from appropriate leave type
+                            switch (leaveType.toLowerCase()) {
+                                case "annual":
+                                    annualLeave -= daysToDeduct;
+                                    break;
+                                case "emergency":
+                                    emergencyLeave -= daysToDeduct;
+                                    break;
+                                case "medical":
+                                    medicalLeave -= daysToDeduct;
+                                    break;
+                            }
+
+                            // Update the leave balance (delete and recreate)
+                            URL deleteUrl = URI.create(FIRESTORE_URL + "/Leave_Balance/" + leaveBalanceId).toURL();
+                            HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
+                            deleteConn.setRequestMethod("DELETE");
+                            deleteConn.getResponseCode();
+
+                            URL createUrl = URI.create(FIRESTORE_URL + "/Leave_Balance?documentId=" + leaveBalanceId).toURL();
+                            HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
+                            createConn.setRequestMethod("POST");
+                            createConn.setRequestProperty("Content-Type", "application/json");
+                            createConn.setDoOutput(true);
+
+                            JsonObject newFields = new JsonObject();
+                            newFields.add("leave_balance_id", stringValue(leaveBalanceId));
+                            newFields.add("userid", stringValue(userId));
+                            newFields.add("year", stringValue(year));
+                            newFields.add("annual_leave", integerValue(annualLeave));
+                            newFields.add("emergency_leave", integerValue(emergencyLeave));
+                            newFields.add("medical_leave", integerValue(medicalLeave));
+
+                            JsonObject newDoc = new JsonObject();
+                            newDoc.add("fields", newFields);
+
+                            try (OutputStream os = createConn.getOutputStream()) {
+                                os.write(newDoc.toString().getBytes(StandardCharsets.UTF_8));
+                            }
+
+                            int code = createConn.getResponseCode();
+                            if (code == 200 || code == 201) {
+                                System.out.println("Leave balance deducted: " + daysToDeduct + " days from " + leaveType);
+                                return true;
+                            }
+                            return false;
+                        }
+                    }
+                }
+            }
+            return false;
+
+        } catch (Exception e) {
+            System.out.println("Deduct Leave Balance Error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Get all pending leave requests (HR only)
      * Filters Leave_Request collection for status = "Pending"
      *

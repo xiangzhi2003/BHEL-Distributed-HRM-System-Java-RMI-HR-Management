@@ -168,4 +168,16 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
         System.out.println("Server: Getting all pending leave requests");
         return authService.getAllPendingLeaves();
     }
+
+    @Override
+    public String approveLeave(String leaveId) throws RemoteException {
+        System.out.println("Server: Approving leave request - " + leaveId);
+        return authService.approveLeave(leaveId);
+    }
+
+    @Override
+    public String rejectLeave(String leaveId) throws RemoteException {
+        System.out.println("Server: Rejecting leave request - " + leaveId);
+        return authService.rejectLeave(leaveId);
+    }
 }
