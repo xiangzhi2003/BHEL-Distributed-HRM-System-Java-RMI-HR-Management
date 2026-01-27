@@ -212,4 +212,14 @@ public interface AuthInterface extends Remote {
          * @return Success/error message
          */
         String rejectLeave(String leaveId) throws RemoteException;
+
+        /**
+         * Generate yearly leave report
+         * Aggregates all leave data for the specified year and exports to text file
+         *
+         * @param year Year to generate report for (e.g., "2026")
+         * @param outputPath File path to save report (if null, uses current directory)
+         * @return Success/error message with file path
+         */
+        String generateYearlyReport(String year, String outputPath) throws RemoteException;
 }

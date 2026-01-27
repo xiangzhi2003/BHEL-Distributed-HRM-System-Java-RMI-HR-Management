@@ -180,4 +180,10 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
         System.out.println("Server: Rejecting leave request - " + leaveId);
         return authService.rejectLeave(leaveId);
     }
+
+    @Override
+    public String generateYearlyReport(String year, String outputPath) throws RemoteException {
+        System.out.println("Server: Generating yearly report for " + year);
+        return authService.generateYearlyReport(year, outputPath);
+    }
 }

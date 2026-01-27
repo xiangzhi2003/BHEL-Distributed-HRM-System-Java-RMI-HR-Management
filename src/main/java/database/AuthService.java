@@ -1798,6 +1798,212 @@ public class AuthService {
     }
 
     /**
+     * Generate yearly leave report
+     * Aggregates all leave data for the specified year and exports to text file
+     *
+     * @param year Year to generate report for (e.g., "2026")
+     * @param outputPath File path to save report (if null, uses current directory)
+     * @return Success/error message with file path
+     */
+    public String generateYearlyReport(String year, String outputPath) {
+        try {
+            // Fetch all leave requests
+            URL url = URI.create(FIRESTORE_URL + "/Leave_Request").toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() != 200) {
+                return "Failed to fetch leave data.";
+            }
+
+            String response = readResponse(conn);
+            JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+            // Data structures for statistics
+            int totalRequests = 0;
+            int pendingCount = 0;
+            int approvedCount = 0;
+            int rejectedCount = 0;
+            int annualCount = 0;
+            int emergencyCount = 0;
+            int medicalCount = 0;
+            int totalDaysRequested = 0;
+            java.util.Map<String, Integer> employeeRequestCount = new java.util.HashMap<>();
+            java.util.Map<String, String> employeeNames = new java.util.HashMap<>();
+            int[] monthlyDistribution = new int[12];
+
+            // Process leave requests
+            if (json.has("documents")) {
+                JsonArray docs = json.getAsJsonArray("documents");
+
+                for (JsonElement doc : docs) {
+                    JsonObject docObj = doc.getAsJsonObject();
+                    JsonObject fields = docObj.getAsJsonObject("fields");
+
+                    String dateCreated = getField(fields, "date_created_at");
+                    
+                    // Skip if date is invalid
+                    if (dateCreated == null || dateCreated.length() < 4) {
+                        continue;
+                    }
+                    
+                    String requestYear = dateCreated.substring(0, 4);
+
+                    // Filter by year
+                    if (!year.equals(requestYear)) {
+                        continue;
+                    }
+
+                    totalRequests++;
+
+                    // Status breakdown
+                    String status = getField(fields, "status");
+                    if ("Pending".equalsIgnoreCase(status)) {
+                        pendingCount++;
+                    } else if ("Approved".equalsIgnoreCase(status)) {
+                        approvedCount++;
+                    } else if ("Rejected".equalsIgnoreCase(status)) {
+                        rejectedCount++;
+                    }
+
+                    // Leave type breakdown
+                    String leaveType = getField(fields, "leave_type");
+                    if ("annual".equalsIgnoreCase(leaveType)) {
+                        annualCount++;
+                    } else if ("emergency".equalsIgnoreCase(leaveType)) {
+                        emergencyCount++;
+                    } else if ("medical".equalsIgnoreCase(leaveType)) {
+                        medicalCount++;
+                    }
+
+                    // Total days
+                    int totalDays = getIntField(fields, "total_days");
+                    totalDaysRequested += totalDays;
+
+                    // Employee request count
+                    String userId = getField(fields, "userid");
+                    employeeRequestCount.put(userId, employeeRequestCount.getOrDefault(userId, 0) + 1);
+                    if (!employeeNames.containsKey(userId)) {
+                        employeeNames.put(userId, getEmployeeNameAndEmail(userId));
+                    }
+
+                    // Monthly distribution
+                    try {
+                        int month = Integer.parseInt(dateCreated.substring(5, 7));
+                        if (month >= 1 && month <= 12) {
+                            monthlyDistribution[month - 1]++;
+                        }
+                    } catch (Exception e) {
+                        // Skip if date parsing fails
+                    }
+                }
+            }
+
+            // Calculate statistics
+            double approvalRate = totalRequests > 0 ? (approvedCount * 100.0 / totalRequests) : 0;
+            double rejectionRate = totalRequests > 0 ? (rejectedCount * 100.0 / totalRequests) : 0;
+            double avgDaysPerRequest = totalRequests > 0 ? (totalDaysRequested * 1.0 / totalRequests) : 0;
+
+            // Find top 5 applicants
+            java.util.List<java.util.Map.Entry<String, Integer>> topApplicants = new java.util.ArrayList<>(employeeRequestCount.entrySet());
+            topApplicants.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+
+            // Build report content
+            StringBuilder report = new StringBuilder();
+            report.append("========================================\n");
+            report.append("    YEARLY LEAVE REPORT - ").append(year).append("\n");
+            report.append("========================================\n");
+            report.append("Generated on: ").append(java.time.LocalDateTime.now().toString().substring(0, 19)).append("\n");
+            report.append("\n");
+
+            // Overall Statistics
+            report.append("----------------------------------------\n");
+            report.append("OVERALL STATISTICS\n");
+            report.append("----------------------------------------\n");
+            report.append("Total Leave Requests : ").append(totalRequests).append("\n");
+            report.append("Total Days Requested : ").append(totalDaysRequested).append(" days\n");
+            report.append("Average Days/Request : ").append(String.format("%.2f", avgDaysPerRequest)).append(" days\n");
+            report.append("\n");
+
+            // Status Breakdown
+            report.append("----------------------------------------\n");
+            report.append("STATUS BREAKDOWN\n");
+            report.append("----------------------------------------\n");
+            report.append("Pending  : ").append(pendingCount).append(" (").append(String.format("%.1f", totalRequests > 0 ? pendingCount * 100.0 / totalRequests : 0)).append("%%)\n");
+            report.append("Approved : ").append(approvedCount).append(" (").append(String.format("%.1f", approvalRate)).append("%%)\n");
+            report.append("Rejected : ").append(rejectedCount).append(" (").append(String.format("%.1f", rejectionRate)).append("%%)\n");
+            report.append("\n");
+
+            // Leave Type Breakdown
+            report.append("----------------------------------------\n");
+            report.append("LEAVE TYPE BREAKDOWN\n");
+            report.append("----------------------------------------\n");
+            report.append("Annual Leave    : ").append(annualCount).append(" requests\n");
+            report.append("Emergency Leave : ").append(emergencyCount).append(" requests\n");
+            report.append("Medical Leave   : ").append(medicalCount).append(" requests\n");
+            report.append("\n");
+
+            // Monthly Trends
+            report.append("----------------------------------------\n");
+            report.append("MONTHLY DISTRIBUTION\n");
+            report.append("----------------------------------------\n");
+            String[] monthNames = {"January", "February", "March", "April", "May", "June",
+                                   "July", "August", "September", "October", "November", "December"};
+            for (int i = 0; i < 12; i++) {
+                if (monthlyDistribution[i] > 0) {
+                    report.append(String.format("%-12s: %d requests\n", monthNames[i], monthlyDistribution[i]));
+                }
+            }
+            report.append("\n");
+
+            // Top Applicants
+            report.append("----------------------------------------\n");
+            report.append("TOP APPLICANTS\n");
+            report.append("----------------------------------------\n");
+            int rank = 1;
+            for (int i = 0; i < Math.min(5, topApplicants.size()); i++) {
+                java.util.Map.Entry<String, Integer> entry = topApplicants.get(i);
+                String employeeName = employeeNames.get(entry.getKey());
+                report.append(rank++).append(". ").append(employeeName)
+                      .append(" - ").append(entry.getValue()).append(" requests\n");
+            }
+            report.append("\n");
+
+            report.append("========================================\n");
+            report.append("           END OF REPORT\n");
+            report.append("========================================\n");
+
+            // Determine file path
+            String filename = "leave_report_" + year + ".txt";
+            String filePath;
+            if (outputPath == null || outputPath.trim().isEmpty()) {
+                filePath = filename;
+            } else {
+                java.io.File dir = new java.io.File(outputPath);
+                if (dir.isDirectory()) {
+                    filePath = outputPath + java.io.File.separator + filename;
+                } else {
+                    filePath = outputPath;
+                }
+            }
+
+            // Write to file
+            try (java.io.FileWriter writer = new java.io.FileWriter(filePath)) {
+                writer.write(report.toString());
+            }
+
+            return "Report generated successfully!\n" +
+                   "File saved at: " + new java.io.File(filePath).getAbsolutePath() + "\n" +
+                   "Total requests processed: " + totalRequests;
+
+        } catch (Exception e) {
+            System.out.println("Generate Report Error: " + e.getMessage());
+            e.printStackTrace();
+            return "Error generating report: " + e.getMessage();
+        }
+    }
+
+    /**
      * Helper: Deduct leave balance from employee's Leave_Balance
      * Called when approving a leave request
      *

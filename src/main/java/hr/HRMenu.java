@@ -53,7 +53,8 @@ public class HRMenu {
                 System.out.println("5. Manage Payroll");
                 System.out.println("6. View Pending Leave Requests");
                 System.out.println("7. Approve/Reject Leave");
-                System.out.println("8. Logout");
+                System.out.println("8. Generate Yearly Report");
+                System.out.println("9. Logout");
                 System.out.println("----------------------------------------");
                 System.out.print("Choice: ");
 
@@ -83,6 +84,9 @@ public class HRMenu {
                         approveRejectLeave(scanner);
                         break;
                     case "8":
+                        generateYearlyReport(scanner);
+                        break;
+                    case "9":
                         running = false; // Exit the loop
                         System.out.println("\nLogged out. Goodbye!");
                         break;
@@ -573,6 +577,35 @@ public class HRMenu {
                 default:
                     System.out.println("\nInvalid choice.");
             }
+
+        } catch (java.rmi.RemoteException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Generate yearly leave report and export to file
+     */
+    private static void generateYearlyReport(Scanner scanner) {
+        try {
+            System.out.println("\n========================================");
+            System.out.println("       GENERATE YEARLY REPORT");
+            System.out.println("========================================");
+
+            // Use current year
+            String currentYear = String.valueOf(java.time.Year.now().getValue());
+            System.out.println("Generating report for year: " + currentYear);
+            System.out.println();
+
+            // Ask for file path
+            System.out.println("Press Enter for default location (current directory),");
+            System.out.print("or type custom path: ");
+            String outputPath = scanner.nextLine().trim();
+
+            // Generate report
+            System.out.println("\nGenerating report, please wait...");
+            String result = authService.generateYearlyReport(currentYear, outputPath.isEmpty() ? null : outputPath);
+            System.out.println("\n" + result);
 
         } catch (java.rmi.RemoteException e) {
             System.out.println("Error: " + e.getMessage());
