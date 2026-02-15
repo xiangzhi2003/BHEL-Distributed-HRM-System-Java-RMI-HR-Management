@@ -245,7 +245,39 @@ public class AuthService {
                 boolean leaveBalanceSuccess = createLeaveBalance(uid);
 
                 if (firestoreSuccess && leaveBalanceSuccess) {
-                    return "Employee added successfully! UID: " + uid;
+                    // Send welcome email to new employee
+                    EmailService emailService = new EmailService();
+                    String subject = "Welcome to BHEL HRM System!";
+                    String emailBody = "Dear " + firstName + " " + lastName + ",\n\n" +
+                                 "Welcome to BHEL HR Management System!\n\n" +
+                                 "Your employee account has been successfully created.\n\n" +
+                                 "Account Details:\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "Email:        " + email + "\n" +
+                                 "Name:         " + firstName + " " + lastName + "\n" +
+                                 "Employee ID:  " + uid + "\n" +
+                                 "Role:         " + capitalizeFirst(role) + "\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                                 "Login Credentials:\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "Email:        " + email + "\n" +
+                                 "Password:     (as provided by HR)\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                                 "Initial Leave Balance: 10 days each (Annual, Emergency, Medical)\n\n" +
+                                 "You can now log in to the HRM system to:\n" +
+                                 "• View your profile\n" +
+                                 "• Apply for leave\n" +
+                                 "• View payroll information\n" +
+                                 "• Update your personal details\n\n" +
+                                 "If you have any questions, please contact your HR department.\n\n" +
+                                 "Best regards,\n" +
+                                 "BHEL HR Team\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "This is an automated message. Please do not reply to this email.";
+                    
+                    emailService.sendEmail(email, subject, emailBody);
+                    
+                    return "Employee added successfully! UID: " + uid + "\n✓ Welcome email sent to: " + email;
                 } else if (firestoreSuccess) {
                     return "Employee created but Leave Balance creation failed. UID: " + uid;
                 } else {
@@ -811,7 +843,30 @@ public class AuthService {
             }
 
             int code = createConn.getResponseCode();
-            return code == 200 || code == 201;
+            if (code == 200 || code == 201) {
+                // Send profile update notification to employee
+                EmailService emailService = new EmailService();
+                String subject = "Profile Updated - BHEL HRM System";
+                String body = "Dear " + firstName + " " + lastName + ",\n\n" +
+                             "Your employee profile has been updated by HR.\n\n" +
+                             "Updated Information:\n" +
+                             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                             "Name:         " + firstName + " " + lastName + "\n" +
+                             "Email:        " + email + "\n" +
+                             "IC/Passport:  " + icPassport + "\n" +
+                             "Role:         " + capitalizeFirst(role) + "\n" +
+                             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                             "If you did not request this change or believe this is an error, " +
+                             "please contact HR immediately.\n\n" +
+                             "Best regards,\n" +
+                             "BHEL HR Team\n" +
+                             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                             "This is an automated message. Please do not reply to this email.";
+                
+                emailService.sendEmail(email, subject, body);
+                return true;
+            }
+            return false;
 
         } catch (Exception e) {
             System.out.println("Update Error: " + e.getMessage());
@@ -895,7 +950,28 @@ public class AuthService {
             }
 
             int code = createConn.getResponseCode();
-            return code == 200 || code == 201;
+            if (code == 200 || code == 201) {
+                // Send profile update confirmation
+                EmailService emailService = new EmailService();
+                String subject = "Profile Update Confirmation - BHEL HRM System";
+                String body = "Dear " + firstName + " " + lastName + ",\n\n" +
+                             "Your profile has been successfully updated.\n\n" +
+                             "Updated Information:\n" +
+                             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                             "Name:         " + firstName + " " + lastName + "\n" +
+                             "Email:        " + emailToSave + "\n" +
+                             "IC/Passport:  " + icPassport + "\n" +
+                             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                             "If you did not make this change, please contact HR immediately.\n\n" +
+                             "Best regards,\n" +
+                             "BHEL HR Team\n" +
+                             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                             "This is an automated message. Please do not reply to this email.";
+                
+                emailService.sendEmail(emailToSave, subject, body);
+                return true;
+            }
+            return false;
 
         } catch (Exception e) {
             System.out.println("Update Own Profile Error: " + e.getMessage());
@@ -1110,7 +1186,32 @@ public class AuthService {
 
             int code = conn.getResponseCode();
             if (code == 200 || code == 201) {
-                return "Payroll entry added successfully! ID: " + payrollId;
+                // Send payroll notification to employee
+                String employeeEmail = getEmployeeEmail(userId);
+                String employeeName = getEmployeeName(userId);
+                
+                if (employeeEmail != null) {
+                    EmailService emailService = new EmailService();
+                    String subject = "💰 Payroll Entry Added - " + getMonthName(formattedMonth) + " " + yearEntry;
+                    String body = "Dear " + employeeName + ",\n\n" +
+                                 "A new payroll entry has been added to your account.\n\n" +
+                                 "Payroll Details:\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "Payroll ID:   " + payrollId + "\n" +
+                                 "Month:        " + getMonthName(formattedMonth) + " " + yearEntry + "\n" +
+                                 "Salary:       RM " + String.format("%.2f", salary) + "\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                                 "You can view your complete payroll history by logging into the HRM system.\n\n" +
+                                 "If you have any questions about this payroll entry, please contact HR.\n\n" +
+                                 "Best regards,\n" +
+                                 "BHEL HR Team\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "This is an automated message. Please do not reply to this email.";
+                    
+                    emailService.sendEmail(employeeEmail, subject, body);
+                }
+                
+                return "Payroll entry added successfully! ID: " + payrollId + "\n✓ Notification sent to employee";
             } else {
                 return "Failed to add payroll entry.";
             }
@@ -1508,9 +1609,77 @@ public class AuthService {
 
             int code = conn.getResponseCode();
             if (code == 200 || code == 201) {
+                // Get employee details for email
+                String employeeEmail = getEmployeeEmail(userId);
+                String employeeName = getEmployeeName(userId);
+                String employeeNameWithEmail = getEmployeeNameAndEmail(userId);
+                
+                // Send confirmation email to employee
+                if (employeeEmail != null) {
+                    EmailService emailService = new EmailService();
+                    
+                    // Email 1: Confirmation to employee
+                    String employeeSubject = "Leave Application Submitted - " + leaveId;
+                    String employeeBody = "Dear " + employeeName + ",\n\n" +
+                                 "Your leave application has been successfully submitted and is awaiting HR approval.\n\n" +
+                                 "Leave Request Details:\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "Leave ID:     " + leaveId + "\n" +
+                                 "Leave Type:   " + capitalizeFirst(lowerLeaveType) + "\n" +
+                                 "Start Date:   " + startDate + "\n" +
+                                 "End Date:     " + endDate + "\n" +
+                                 "Total Days:   " + totalDays + " day(s)\n" +
+                                 "Status:       Pending\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                                 "The HR team will review your request and respond soon.\n" +
+                                 "You will receive another email once your request has been processed.\n\n" +
+                                 "Thank you for using the BHEL HRM System.\n\n" +
+                                 "Best regards,\n" +
+                                 "BHEL HR Management System\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "This is an automated message. Please do not reply to this email.";
+                    
+                    emailService.sendEmail(employeeEmail, employeeSubject, employeeBody);
+                    
+                    // Email 2: Notification to ALL HR team members
+                    String hrSubject = "⚠️ New Leave Request - " + employeeName;
+                    String hrBody = "Dear HR Team,\n\n" +
+                                 "A new leave request has been submitted and requires your attention.\n\n" +
+                                 "Employee Information:\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "Employee:     " + employeeName + "\n" +
+                                 "Email:        " + employeeEmail + "\n\n" +
+                                 "Leave Request Details:\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "Leave ID:     " + leaveId + "\n" +
+                                 "Leave Type:   " + capitalizeFirst(lowerLeaveType) + "\n" +
+                                 "Start Date:   " + startDate + "\n" +
+                                 "End Date:     " + endDate + "\n" +
+                                 "Total Days:   " + totalDays + " day(s)\n" +
+                                 "Reason:       " + reason + "\n" +
+                                 "Status:       Pending (awaiting approval)\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                                 "Please log in to the HRM system to review and process this request.\n\n" +
+                                 "Best regards,\n" +
+                                 "BHEL HR Management System\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "This is an automated message. Please do not reply to this email.";
+                    
+                    // Send notification to all HR users
+                    java.util.List<String> hrEmails = getAllHREmails();
+                    int hrNotified = 0;
+                    for (String hrEmail : hrEmails) {
+                        if (emailService.sendEmail(hrEmail, hrSubject, hrBody)) {
+                            hrNotified++;
+                        }
+                    }
+                }
+                
                 return "Leave application submitted successfully!\n" +
                         "Leave ID: " + leaveId + "\n" +
-                        "Status: Pending (awaiting HR approval)";
+                        "Status: Pending (awaiting HR approval)\n\n" +
+                        "✓ Confirmation email sent to: " + employeeEmail + "\n" +
+                        "✓ Notification sent to HR team";
             } else {
                 String error = readErrorResponse(conn);
                 System.out.println("Firestore Error: " + error);
@@ -1700,11 +1869,45 @@ public class AuthService {
 
             int code = createConn.getResponseCode();
             if (code == 200 || code == 201) {
+                // Get employee details for email
+                String employeeEmail = getEmployeeEmail(userId);
+                String employeeName = getEmployeeName(userId);
+                
+                // Send approval email to employee
+                if (employeeEmail != null) {
+                    EmailService emailService = new EmailService();
+                    
+                    String subject = "✅ Leave Request APPROVED - " + leaveId;
+                    String body = "Dear " + employeeName + ",\n\n" +
+                                 "Great news! Your leave request has been APPROVED by HR.\n\n" +
+                                 "Approved Leave Details:\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "Leave ID:           " + leaveId + "\n" +
+                                 "Leave Type:         " + capitalizeFirst(leaveType) + "\n" +
+                                 "Start Date:         " + startDate + "\n" +
+                                 "End Date:           " + endDate + "\n" +
+                                 "Approved Days:      " + totalDays + " day(s)\n" +
+                                 "Days Deducted:      " + totalDays + " day(s)\n" +
+                                 "Remaining Balance:  " + (currentBalance - totalDays) + " day(s)\n" +
+                                 "Status:             ✅ APPROVED\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                                 "Your leave has been scheduled. Please ensure any necessary handovers " +
+                                 "are completed before your leave begins.\n\n" +
+                                 "Enjoy your time off!\n\n" +
+                                 "Best regards,\n" +
+                                 "BHEL HR Team\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "This is an automated message. Please do not reply to this email.";
+                    
+                    emailService.sendEmail(employeeEmail, subject, body);
+                }
+                
                 return "Leave request APPROVED successfully!\n" +
                        "Employee: " + getEmployeeNameAndEmail(userId) + "\n" +
                        "Leave Type: " + capitalizeFirst(leaveType) + "\n" +
                        "Days Deducted: " + totalDays + "\n" +
-                       "Remaining Balance: " + (currentBalance - totalDays) + " days";
+                       "Remaining Balance: " + (currentBalance - totalDays) + " days\n\n" +
+                       "✓ Approval notification sent to: " + employeeEmail;
             } else {
                 return "Failed to update leave status.";
             }
@@ -1783,10 +1986,42 @@ public class AuthService {
 
             int code = createConn.getResponseCode();
             if (code == 200 || code == 201) {
+                // Get employee details for email
+                String employeeEmail = getEmployeeEmail(userId);
+                String employeeName = getEmployeeName(userId);
+                
+                // Send rejection email to employee
+                if (employeeEmail != null) {
+                    EmailService emailService = new EmailService();
+                    
+                    String subject = "❌ Leave Request REJECTED - " + leaveId;
+                    String body = "Dear " + employeeName + ",\n\n" +
+                                 "We regret to inform you that your leave request has been REJECTED by HR.\n\n" +
+                                 "Leave Request Details:\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "Leave ID:     " + leaveId + "\n" +
+                                 "Leave Type:   " + capitalizeFirst(leaveType) + "\n" +
+                                 "Start Date:   " + startDate + "\n" +
+                                 "End Date:     " + endDate + "\n" +
+                                 "Total Days:   " + totalDays + " day(s)\n" +
+                                 "Status:       ❌ REJECTED\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                                 "Your leave balance has NOT been deducted.\n\n" +
+                                 "If you have questions about this decision, please contact HR directly " +
+                                 "or submit a new request with adjusted dates.\n\n" +
+                                 "Best regards,\n" +
+                                 "BHEL HR Team\n" +
+                                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                 "This is an automated message. Please do not reply to this email.";
+                    
+                    emailService.sendEmail(employeeEmail, subject, body);
+                }
+                
                 return "Leave request REJECTED successfully!\n" +
                        "Employee: " + getEmployeeNameAndEmail(userId) + "\n" +
                        "Leave Type: " + capitalizeFirst(leaveType) + "\n" +
-                       "Days: " + totalDays + " (No deduction - request rejected)";
+                       "Days: " + totalDays + " (No deduction - request rejected)\n\n" +
+                       "✓ Rejection notification sent to: " + employeeEmail;
             } else {
                 return "Failed to update leave status.";
             }
@@ -2192,5 +2427,104 @@ public class AuthService {
             default:
                 return status;
         }
+    }
+
+    /**
+     * Helper: Get employee email by userId
+     * Used for sending email notifications
+     * 
+     * @param userId Employee's UID
+     * @return Employee's email address or null if not found
+     */
+    private String getEmployeeEmail(String userId) {
+        try {
+            URL url = URI.create(FIRESTORE_URL + "/users/" + userId).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                JsonObject fields = json.getAsJsonObject("fields");
+                return getField(fields, "email");
+            }
+        } catch (Exception e) {
+            System.out.println("Error getting employee email: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Helper: Get all HR users' email addresses
+     * Queries the users collection for all users with role="hr"
+     * Used for sending notifications to all HR personnel
+     * 
+     * @return List of HR email addresses
+     */
+    private java.util.List<String> getAllHREmails() {
+        java.util.List<String> hrEmails = new java.util.ArrayList<>();
+        try {
+            URL url = URI.create(FIRESTORE_URL + "/users").toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+
+                if (json.has("documents")) {
+                    JsonArray docs = json.getAsJsonArray("documents");
+                    for (JsonElement doc : docs) {
+                        JsonObject docObj = doc.getAsJsonObject();
+                        JsonObject fields = docObj.getAsJsonObject("fields");
+
+                        String role = getField(fields, "role");
+                        if ("hr".equalsIgnoreCase(role)) {
+                            String email = getField(fields, "email");
+                            if (email != null && !email.equals("N/A")) {
+                                hrEmails.add(email);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (hrEmails.isEmpty()) {
+                System.out.println("Warning: No HR users found in database");
+            } else {
+                System.out.println("Found " + hrEmails.size() + " HR user(s): " + hrEmails);
+            }
+        } catch (Exception e) {
+            System.out.println("Error getting HR emails: " + e.getMessage());
+        }
+        return hrEmails;
+    }
+
+    /**
+     * Helper: Get employee full name by userId
+     * Used for email personalization
+     * 
+     * @param userId Employee's UID
+     * @return Employee's full name or "Employee" if not found
+     */
+    private String getEmployeeName(String userId) {
+        try {
+            URL url = URI.create(FIRESTORE_URL + "/users/" + userId).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            if (conn.getResponseCode() == 200) {
+                String response = readResponse(conn);
+                JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                JsonObject fields = json.getAsJsonObject("fields");
+
+                String firstName = getField(fields, "first_name");
+                String lastName = getField(fields, "last_name");
+                return firstName + " " + lastName;
+            }
+        } catch (Exception e) {
+            System.out.println("Error getting employee name: " + e.getMessage());
+        }
+        return "Employee";
     }
 }

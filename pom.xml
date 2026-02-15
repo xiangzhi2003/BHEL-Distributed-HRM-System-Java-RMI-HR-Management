@@ -88,6 +88,18 @@
             <artifactId>guava</artifactId>
             <version>32.1.2-jre</version>
         </dependency>
+
+        <!--
+            JavaMail API (Jakarta Mail)
+            Used for: Sending emails via SMTP
+            - Gmail SMTP support
+            - Email composition and sending
+        -->
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version>
+        </dependency>
     </dependencies>
 
     <!--
