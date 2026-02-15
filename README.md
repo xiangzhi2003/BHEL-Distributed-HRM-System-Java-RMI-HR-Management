@@ -1,8 +1,4 @@
-### 2. Start the RMI Client (in a separate terminal)
-# Run server
-mvn exec:java -Dexec.mainClass="server.RMIServer"
-# Compile
-Distributed Computer System Assignment
+# Distributed Computer System Assignment
 # RMI Employee Management System
 
 A distributed employee management system built with Java RMI and Firebase.
@@ -41,6 +37,20 @@ src/main/java/
 
 ## How to Run
 
+### 1. Start the RMI Server
+```bash
+# Compile
+mvn clean compile
+
+# Run server
+mvn exec:java -Dexec.mainClass="server.RMIServer"
+```
+
+### 2. Start the RMI Client (in a separate terminal)
+```bash
+mvn exec:java -Dexec.mainClass="server.RMIClient"
+```
+
 ### Or run from IDE:
 1. Run `server.RMIServer` first
 2. Run `server.RMIClient` second
@@ -48,23 +58,28 @@ src/main/java/
 ## Features
 
 ### Current Features
-- **Login System** - Firebase Authentication
+- **Login System** - Firebase Authentication with role-based access control
 - **HR Functions:**
   - View all employees
-  - Add new employee
+  - Add new employee (auto-creates leave balance)
   - Edit employee details
   - Delete employee
   - Manage payroll (CRUD)
+  - View pending leave requests
+  - Approve/reject leave applications (with balance validation)
+  - Generate yearly reports (downloadable as text files)
 - **Employee Functions:**
   - View profile
+  - Update profile (email and personal information)
   - View payroll history
-  - Leave application system (database ready)
+  - Apply for leave (annual, emergency, medical)
+  - Check leave status and balance
+  - View leave history
 
 ### Planned Features
-- Leave approval/rejection (HR)
-- Email notifications
-- Yearly report generation (PDF/Text)
-- Employee self-profile update
+- Email notifications for leave approvals/rejections
+- PDF report generation (currently text-based)
+- Advanced analytics and reporting
 
 ---
 
@@ -82,25 +97,25 @@ src/main/java/
 ### Dev 2 - Employee Functionality
 | Task | Status |
 |------|--------|
-| Employee Task: Apply for Leave | ❌ Pending |
-| Employee Task: Check Leave Status | ❌ Pending |
+| Employee Task: Apply for Leave | ✅ Done |
+| Employee Task: Check Leave Status | ✅ Done |
 | Employee Task: View Salary | ✅ Done |
-| UI: Employee Dashboard Main Menu | ⚠️ Partial |
+| UI: Employee Dashboard Main Menu | ✅ Done |
 
 ### Dev 3 - Profile & Notifications
 | Task | Status |
 |------|--------|
 | Employee Task: Fetch Profile | ✅ Done |
-| Employee Task: Update Profile | ❌ Pending |
+| Employee Task: Update Profile | ✅ Done |
 | System Task: Email Logic | ❌ Pending |
 | Security: Password Hashing | ✅ Done (Firebase) |
 
 ### Dev 4 - HR Operations
 | Task | Status |
 |------|--------|
-| HR Task: View Pending Leave Requests | ❌ Pending |
-| HR Task: Approve/Reject Leave | ❌ Pending |
-| HR Task: Generate Yearly Report | ❌ Pending |
+| HR Task: View Pending Leave Requests | ✅ Done |
+| HR Task: Approve/Reject Leave | ✅ Done |
+| HR Task: Generate Yearly Report | ✅ Done |
 | UI: HR Dashboard Main Menu | ✅ Done |
 
 ---
@@ -156,7 +171,7 @@ src/main/java/
 
 ## Technology Stack
 
-- **Language:** Java 11+
+- **Language:** Java 21
 - **RMI:** Java Remote Method Invocation
 - **Database:** Firebase Firestore
 - **Authentication:** Firebase Auth
@@ -216,3 +231,5 @@ This file contains Firebase service account credentials for server-side authenti
 - Ensure `serviceAccountKey.json` is in the project root directory
 - RMI Server must be running before starting the client
 - Default RMI port: 1099
+- Leave balance is automatically created when new employees are registered
+- HR can download yearly reports to a specified file path
