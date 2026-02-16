@@ -8,7 +8,8 @@ A distributed employee management system built with Java RMI and Firebase.
 ```
 src/main/java/
 ├── database/
-│   └── AuthService.java        # Business logic (Firebase operations)
+│   ├── AuthService.java        # Business logic (Firebase operations)
+│   └── EmailService.java       # Email notification service
 ├── server/
 │   ├── AuthInterface.java      # 1. Remote Interface
 │   ├── AuthServiceImpl.java    # 2. Remote Object Implementation
@@ -16,8 +17,9 @@ src/main/java/
 │   └── RMIClient.java          # 4. RMI Client (main entry point)
 ├── hr/
 │   └── HRMenu.java             # HR Dashboard menu
-└── employee/
-    └── EmployeeMenu.java       # Employee Dashboard menu
+├── employee/
+│   └── EmployeeMenu.java       # Employee Dashboard menu
+└── TestingEmails.java          # Email testing utility
 ```
 
 ## RMI Architecture
@@ -59,25 +61,31 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 
 ### Current Features
 - **Login System** - Firebase Authentication with role-based access control
+- **Email Notifications** - Automated emails sent via Gmail SMTP for:
+  - New employee welcome emails
+  - Profile update notifications
+  - Payroll entry notifications
+  - Leave application confirmations (to employee)
+  - Leave request alerts (to all HR staff)
+  - Leave approval/rejection notifications
 - **HR Functions:**
   - View all employees
-  - Add new employee (auto-creates leave balance)
-  - Edit employee details
+  - Add new employee (auto-creates leave balance + sends welcome email)
+  - Edit employee details (sends notification email)
   - Delete employee
-  - Manage payroll (CRUD)
+  - Manage payroll (CRUD with email notifications)
   - View pending leave requests
-  - Approve/reject leave applications (with balance validation)
+  - Approve/reject leave applications (with balance validation + email notifications)
   - Generate yearly reports (downloadable as text files)
 - **Employee Functions:**
   - View profile
-  - Update profile (email and personal information)
+  - Update profile (email and personal information with email confirmation)
   - View payroll history
-  - Apply for leave (annual, emergency, medical)
+  - Apply for leave (annual, emergency, medical with email notifications)
   - Check leave status and balance
   - View leave history
 
 ### Planned Features
-- Email notifications for leave approvals/rejections
 - PDF report generation (currently text-based)
 - Advanced analytics and reporting
 
@@ -107,7 +115,7 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 |------|--------|
 | Employee Task: Fetch Profile | ✅ Done |
 | Employee Task: Update Profile | ✅ Done |
-| System Task: Email Logic | ❌ Pending |
+| System Task: Email Logic | ✅ Done |
 | Security: Password Hashing | ✅ Done (Firebase) |
 
 ### Dev 4 - HR Operations
@@ -175,6 +183,7 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 - **RMI:** Java Remote Method Invocation
 - **Database:** Firebase Firestore
 - **Authentication:** Firebase Auth
+- **Email Service:** Gmail SMTP (JavaMail API)
 - **Build Tool:** Maven
 
 ## Dependencies (pom.xml)
@@ -182,6 +191,7 @@ mvn exec:java -Dexec.mainClass="server.RMIClient"
 - Firebase Admin SDK
 - Google Auth Library
 - Gson (JSON parsing)
+- JavaMail API (javax.mail) - Email notifications
 
 ---
 
@@ -226,6 +236,26 @@ This file contains Firebase service account credentials for server-side authenti
 
 ---
 
+## Email Configuration
+
+The system uses Gmail SMTP to send automated email notifications. To set up:
+
+1. **Enable 2-Step Verification** in your Google Account
+2. **Generate an App Password:**
+   - Go to [Google Account Security](https://myaccount.google.com/security)
+   - Select "App Passwords"
+   - Generate a new password for "Mail"
+3. **Configure EmailService.java:**
+   - Update `USERNAME` with your Gmail address
+   - Update `APP_PASSWORD` with your generated app password
+
+**Email Notifications Sent:**
+- New employee welcome emails (to employee)
+- Profile update confirmations (to employee)
+- Payroll entry notifications (to employee)
+- Leave application submitted (to employee + all HR staff)
+- Leave approved/rejected (to employee)
+
 ## Notes
 
 - Ensure `serviceAccountKey.json` is in the project root directory
@@ -233,3 +263,4 @@ This file contains Firebase service account credentials for server-side authenti
 - Default RMI port: 1099
 - Leave balance is automatically created when new employees are registered
 - HR can download yearly reports to a specified file path
+- All email notifications are sent to real email addresses via Gmail SMTP
