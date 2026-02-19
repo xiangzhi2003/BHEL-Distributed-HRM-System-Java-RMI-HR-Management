@@ -35,6 +35,11 @@ public interface AuthInterface extends Remote {
          */
         String getRole(String uid) throws RemoteException;
 
+        /**
+         * Handshake method to confirm connection
+         */
+        void printConnection() throws RemoteException;
+
         // ==================== EMPLOYEE CRUD OPERATIONS ====================
 
         /**
@@ -217,7 +222,7 @@ public interface AuthInterface extends Remote {
          * Generate yearly leave report
          * Aggregates all leave data for the specified year and exports to text file
          *
-         * @param year Year to generate report for (e.g., "2026")
+         * @param year       Year to generate report for (e.g., "2026")
          * @param outputPath File path to save report (if null, uses current directory)
          * @return Success/error message with file path
          */

@@ -46,6 +46,11 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
         return authService.getRole(uid); // Gets role from Firestore
     }
 
+    @Override
+    public void printConnection() throws RemoteException {
+        System.out.println("==> A new Client has connected!");
+    }
+
     // ==================== EMPLOYEE CRUD METHODS ====================
     // These methods delegate to AuthService which handles Firestore operations
 

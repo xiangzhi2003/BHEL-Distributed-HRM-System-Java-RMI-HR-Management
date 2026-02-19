@@ -31,6 +31,9 @@ public class RMIClient {
             Registry registry = LocateRegistry.getRegistry("localhost", 1099);
             authService = (AuthInterface) registry.lookup("AuthService");
 
+            // Handshake: Notify server of connection
+            authService.printConnection();
+
             // Main application loop - allows logout and login again
             boolean running = true;
             while (running) {
@@ -79,9 +82,9 @@ public class RMIClient {
 
                 // Step 5: Redirect to appropriate menu based on role
                 if ("hr".equalsIgnoreCase(role)) {
-                    HRMenu.show(scanner, uid, email);  // HR gets HR menu
+                    HRMenu.show(scanner, uid, email); // HR gets HR menu
                 } else if ("employee".equalsIgnoreCase(role)) {
-                    EmployeeMenu.show(scanner, uid, email);  // Employee gets Employee menu
+                    EmployeeMenu.show(scanner, uid, email); // Employee gets Employee menu
                 } else {
                     System.out.println("Unknown role: " + role);
                 }
