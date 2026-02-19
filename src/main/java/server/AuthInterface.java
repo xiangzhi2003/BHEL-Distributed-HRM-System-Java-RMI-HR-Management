@@ -73,9 +73,9 @@ public interface AuthInterface extends Remote {
          * Update own profile information (Employee only)
          * Cannot change role
          * 
-         * @return true if successful, false if failed
+         * @return Success message or error message
          */
-        boolean updateOwnProfile(String uid, String email, String firstName, String lastName, String icPassport)
+        String updateOwnProfile(String uid, String email, String firstName, String lastName, String icPassport)
                         throws RemoteException;
 
         /**

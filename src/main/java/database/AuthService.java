@@ -877,8 +877,10 @@ public class AuthService {
     /**
      * Update own profile information (Employee only)
      * Preserves existing Role, Updates Email via Admin SDK
+     * 
+     * @return Success message or error message
      */
-    public boolean updateOwnProfile(String uid, String newEmail, String firstName, String lastName, String icPassport) {
+    public String updateOwnProfile(String uid, String newEmail, String firstName, String lastName, String icPassport) {
         try {
             // First get the current data
             String currentEmail = null;
@@ -898,37 +900,52 @@ public class AuthService {
 
             if (currentEmail == null || role == null) {
                 System.out.println("Could not get current employee data for update");
-                return false;
+                return "Error: Could not retrieve current profile data.";
             }
 
             // If email is different, update it in Firebase Auth
-            // NOTE: Client logic should normally prevent empty strings, but let's be safe
             String emailToSave = currentEmail;
             if (newEmail != null && !newEmail.isEmpty() && !newEmail.equals(currentEmail)) {
                 try {
+                    System.out.println("Attempting to update email in Firebase Auth...");
+                    System.out.println("  From: " + currentEmail);
+                    System.out.println("  To: " + newEmail);
+                    
                     // Update Firebase Auth
                     initFirebaseAdmin();
                     com.google.firebase.auth.UserRecord.UpdateRequest request = new com.google.firebase.auth.UserRecord.UpdateRequest(
                             uid)
                             .setEmail(newEmail);
                     FirebaseAuth.getInstance().updateUser(request);
-                    System.out.println("Firebase Auth Email Updated: " + newEmail);
+                    System.out.println("✓ Firebase Auth Email Updated: " + newEmail);
                     emailToSave = newEmail;
                 } catch (Exception e) {
-                    System.out.println("Failed to update email in Auth: " + e.getMessage());
-                    return false; // Abort if Auth update fails
+                    String errorMsg = e.getMessage();
+                    System.out.println("✗ Failed to update email in Auth: " + errorMsg);
+                    
+                    // Provide user-friendly error messages
+                    if (errorMsg.contains("EMAIL_EXISTS") || errorMsg.contains("email already exists")) {
+                        return "Error: The email '" + newEmail + "' is already in use. Please try a different email.";
+                    } else if (errorMsg.contains("INVALID_EMAIL")) {
+                        return "Error: The email '" + newEmail + "' is not valid. Please enter a valid email address.";
+                    } else {
+                        return "Error: Failed to update email - " + errorMsg;
+                    }
                 }
             } else if (newEmail != null && !newEmail.isEmpty()) {
                 emailToSave = newEmail; // Even if same, ensure we use the non-null value
             }
 
             // Delete the document
+            System.out.println("Deleting old Firestore document...");
             URL deleteUrl = URI.create(FIRESTORE_URL + "/users/" + uid).toURL();
             HttpURLConnection deleteConn = (HttpURLConnection) deleteUrl.openConnection();
             deleteConn.setRequestMethod("DELETE");
-            deleteConn.getResponseCode(); // Execute delete
+            int deleteCode = deleteConn.getResponseCode();
+            System.out.println("Delete response code: " + deleteCode);
 
             // Recreate with updated data
+            System.out.println("Creating new Firestore document with updated data...");
             URL createUrl = URI.create(FIRESTORE_URL + "/users?documentId=" + uid).toURL();
             HttpURLConnection createConn = (HttpURLConnection) createUrl.openConnection();
             createConn.setRequestMethod("POST");
@@ -945,12 +962,15 @@ public class AuthService {
             JsonObject doc = new JsonObject();
             doc.add("fields", fields);
 
+            System.out.println("Document JSON: " + doc.toString());
+
             try (OutputStream os = createConn.getOutputStream()) {
                 os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
             }
 
             int code = createConn.getResponseCode();
             if (code == 200 || code == 201) {
+                System.out.println("✓ Profile updated successfully in Firestore");
                 // Send profile update confirmation
                 EmailService emailService = new EmailService();
                 String subject = "Profile Update Confirmation - BHEL HRM System";
@@ -969,13 +989,19 @@ public class AuthService {
                              "This is an automated message. Please do not reply to this email.";
                 
                 emailService.sendEmail(emailToSave, subject, body);
-                return true;
+                return "SUCCESS"; // Indicates success
+            } else {
+                System.out.println("✗ Failed to update profile in Firestore");
+                System.out.println("HTTP Response Code: " + code);
+                String errorResponse = readErrorResponse(createConn);
+                System.out.println("Error Response: " + errorResponse);
+                return "Error: Failed to update profile in database (HTTP " + code + ")";
             }
-            return false;
 
         } catch (Exception e) {
-            System.out.println("Update Own Profile Error: " + e.getMessage());
-            return false;
+            System.out.println("✗ Update Own Profile Error: " + e.getMessage());
+            e.printStackTrace();
+            return "Error: An unexpected error occurred - " + e.getMessage();
         }
     }
 

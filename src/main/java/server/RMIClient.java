@@ -15,7 +15,7 @@ import java.util.Scanner;
  * What it does:
  * 1. Connects to the RMI Registry on localhost:1099
  * 2. Looks up the "AuthService" remote object
- * 3. Handles user login via Firebase Authentication
+ * 3. Handles user login via Firebase Authenticationemad
  * 4. Redirects to appropriate menu based on user role (HR or Employee)
  *
  * The client calls methods on authService as if they were local,

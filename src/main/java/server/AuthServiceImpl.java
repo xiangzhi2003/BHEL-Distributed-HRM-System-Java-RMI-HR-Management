@@ -76,7 +76,7 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
     }
 
     @Override
-    public boolean updateOwnProfile(String uid, String email, String firstName, String lastName, String icPassport)
+    public String updateOwnProfile(String uid, String email, String firstName, String lastName, String icPassport)
             throws RemoteException {
         System.out.println("Server: Updating own profile - " + uid);
         return authService.updateOwnProfile(uid, email, firstName, lastName, icPassport);

@@ -1,0 +1,43 @@
+========================================
+    YEARLY LEAVE REPORT - 2026
+========================================
+Generated on: 2026-02-19T04:32:54
+
+----------------------------------------
+OVERALL STATISTICS
+----------------------------------------
+Total Leave Requests : 7
+Total Days Requested : 65 days
+Average Days/Request : 9.29 days
+
+----------------------------------------
+STATUS BREAKDOWN
+----------------------------------------
+Pending  : 0 (0.0%%)
+Approved : 4 (57.1%%)
+Rejected : 3 (42.9%%)
+
+----------------------------------------
+LEAVE TYPE BREAKDOWN
+----------------------------------------
+Annual Leave    : 6 requests
+Emergency Leave : 1 requests
+Medical Leave   : 0 requests
+
+----------------------------------------
+MONTHLY DISTRIBUTION
+----------------------------------------
+January     : 4 requests
+February    : 3 requests
+
+----------------------------------------
+TOP APPLICANTS
+----------------------------------------
+1. ahmed naded (ahmed@gmail.com) - 3 requests
+2. emad emad (emad@gmail.com) - 2 requests
+3. basem ali (basem@gmail.com) - 1 requests
+4. Unknown (3FbFZs9j4xd2fRH7i3QumItqmM73) - 1 requests
+
+========================================
+           END OF REPORT
+========================================

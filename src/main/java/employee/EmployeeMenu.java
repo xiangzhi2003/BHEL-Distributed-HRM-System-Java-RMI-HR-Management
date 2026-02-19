@@ -186,16 +186,19 @@ public class EmployeeMenu {
 
             // Confirm update
             System.out.println("\nUpdating profile...");
-            boolean success = authService.updateOwnProfile(uid, email, firstName, lastName, icPassport);
+            String result = authService.updateOwnProfile(uid, email, firstName, lastName, icPassport);
 
-            if (success) {
-                System.out.println("\nProfile updated successfully!");
+            if (result.equals("SUCCESS")) {
+                System.out.println("\n✓ Profile updated successfully!");
                 if (!email.equals(currentEmail)) {
                     System.out.println("NOTE: You changed your email. Please use the new email for next login.");
                 }
                 viewProfile(uid); // Show updated profile
+            } else if (result.startsWith("Error:")) {
+                System.out.println("\n✗ " + result);
+                System.out.println("\nPlease try again with different information.");
             } else {
-                System.out.println("\nFailed to update profile. Please try again.");
+                System.out.println("\n✗ Failed to update profile. Please try again.");
             }
 
         } catch (java.rmi.RemoteException e) {
