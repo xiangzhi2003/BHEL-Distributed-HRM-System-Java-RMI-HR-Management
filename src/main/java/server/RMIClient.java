@@ -94,7 +94,7 @@ public class RMIClient {
             }
 
         } catch (java.rmi.RemoteException | java.rmi.NotBoundException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Cannot connect to server - ensure the RMI server is running on port 1099");
         }
     }
 }

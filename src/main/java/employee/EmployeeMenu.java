@@ -81,7 +81,7 @@ public class EmployeeMenu {
             }
 
         } catch (java.rmi.RemoteException | java.rmi.NotBoundException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -95,7 +95,7 @@ public class EmployeeMenu {
             String profile = authService.getEmployeeByUid(uid); // RMI call
             System.out.println("\n" + profile + "\n");
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -109,7 +109,7 @@ public class EmployeeMenu {
             String payroll = authService.getPayrollByUserId(uid); // RMI call
             System.out.println("\n" + payroll + "\n");
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -202,7 +202,7 @@ public class EmployeeMenu {
             }
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -223,7 +223,7 @@ public class EmployeeMenu {
         try {
             authService.checkAndResetLeaveBalance(uid);
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Warning: Could not verify leave balance - " + e.getMessage());
+            System.out.println("⚠ Could not verify leave balance - server may be unavailable");
         }
 
         while (running) {
@@ -258,7 +258,7 @@ public class EmployeeMenu {
                 }
 
             } catch (Exception e) {
-                System.out.println("Error: " + e.getMessage());
+                System.out.println("✗ Server connection error - please ensure the RMI server is running");
             }
         }
     }
@@ -358,7 +358,7 @@ public class EmployeeMenu {
             System.out.println("\n" + result);
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -372,7 +372,7 @@ public class EmployeeMenu {
             String history = authService.getLeavesByUserId(uid);
             System.out.println("\n" + history);
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -387,7 +387,7 @@ public class EmployeeMenu {
             String balance = authService.getLeaveBalance(uid);
             System.out.println("\n" + balance);
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 

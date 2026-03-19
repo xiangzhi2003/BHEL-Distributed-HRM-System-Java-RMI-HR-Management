@@ -93,8 +93,7 @@ public class EmailService {
             }
 
         } catch (Exception e) {
-            System.err.println("✗ Error fetching SMTP config: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("✗ Failed to load email service configuration");
         }
     }
     

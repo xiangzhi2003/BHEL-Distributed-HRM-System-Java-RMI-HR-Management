@@ -96,7 +96,7 @@ public class HRMenu {
             }
 
         } catch (java.rmi.RemoteException | java.rmi.NotBoundException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -110,7 +110,7 @@ public class HRMenu {
             String result = authService.getAllEmployees(); // RMI call
             System.out.println("\n" + result);
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -151,7 +151,7 @@ public class HRMenu {
             System.out.println("\n" + result);
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -203,7 +203,7 @@ public class HRMenu {
             }
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -249,7 +249,7 @@ public class HRMenu {
             }
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -296,7 +296,7 @@ public class HRMenu {
                 manageEmployeePayroll(scanner, userId, employeeName);
 
             } catch (java.rmi.RemoteException e) {
-                System.out.println("Error: " + e.getMessage());
+                System.out.println("✗ Server connection error - please ensure the RMI server is running");
             }
         }
     }
@@ -364,7 +364,7 @@ public class HRMenu {
             String result = authService.getPayrollByUserId(userId);
             System.out.println("\n" + result);
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -398,7 +398,7 @@ public class HRMenu {
             System.out.println("\n" + result);
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -448,7 +448,7 @@ public class HRMenu {
             }
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -485,7 +485,7 @@ public class HRMenu {
             }
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -499,7 +499,7 @@ public class HRMenu {
             String result = authService.getAllPendingLeaves();
             System.out.println("\n" + result);
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -579,7 +579,7 @@ public class HRMenu {
             }
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 
@@ -608,7 +608,7 @@ public class HRMenu {
             System.out.println("\n" + result);
 
         } catch (java.rmi.RemoteException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("✗ Server connection error - please ensure the RMI server is running");
         }
     }
 }

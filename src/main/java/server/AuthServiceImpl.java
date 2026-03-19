@@ -42,7 +42,7 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
 
     @Override
     public String getRole(String uid) throws RemoteException {
-        System.out.println("Server: Getting role for UID " + uid);
+        System.out.println("Server: [auth] get-role");
         return authService.getRole(uid); // Gets role from Firestore
     }
 
@@ -69,21 +69,21 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
 
     @Override
     public String getEmployeeByUid(String uid) throws RemoteException {
-        System.out.println("Server: Getting employee - " + uid);
+        System.out.println("Server: [employee] view");
         return authService.getEmployeeByUid(uid);
     }
 
     @Override
     public boolean updateEmployee(String uid, String firstName, String lastName, String icPassport, String role)
             throws RemoteException {
-        System.out.println("Server: Updating employee - " + uid);
+        System.out.println("Server: [employee] update");
         return authService.updateEmployee(uid, firstName, lastName, icPassport, role);
     }
 
     @Override
     public String updateOwnProfile(String uid, String email, String firstName, String lastName, String icPassport)
             throws RemoteException {
-        System.out.println("Server: Updating own profile - " + uid);
+        System.out.println("Server: [employee] update-own-profile");
         return authService.updateOwnProfile(uid, email, firstName, lastName, icPassport);
     }
 
@@ -94,7 +94,7 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
 
     @Override
     public boolean deleteEmployee(String uid) throws RemoteException {
-        System.out.println("Server: Deleting employee - " + uid);
+        System.out.println("Server: [employee] delete");
         return authService.deleteEmployee(uid);
     }
 
@@ -109,26 +109,26 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
 
     @Override
     public String getPayrollByUserId(String userId) throws RemoteException {
-        System.out.println("Server: Getting payroll for user - " + userId);
+        System.out.println("Server: [payroll] view");
         return authService.getPayrollByUserId(userId);
     }
 
     @Override
     public String addPayroll(String userId, double salary, String monthEntry, String yearEntry) throws RemoteException {
-        System.out.println("Server: Adding payroll for user - " + userId);
+        System.out.println("Server: [payroll] add");
         return authService.addPayroll(userId, salary, monthEntry, yearEntry);
     }
 
     @Override
     public boolean updatePayroll(String payrollId, double salary, String monthEntry, String yearEntry)
             throws RemoteException {
-        System.out.println("Server: Updating payroll - " + payrollId);
+        System.out.println("Server: [payroll] update");
         return authService.updatePayroll(payrollId, salary, monthEntry, yearEntry);
     }
 
     @Override
     public boolean deletePayroll(String payrollId) throws RemoteException {
-        System.out.println("Server: Deleting payroll - " + payrollId);
+        System.out.println("Server: [payroll] delete");
         return authService.deletePayroll(payrollId);
     }
 
@@ -138,31 +138,31 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
     @Override
     public String applyLeave(String userId, String leaveType, String startDate, String endDate, int totalDays,
             String reason) throws RemoteException {
-        System.out.println("Server: Applying leave for user - " + userId);
+        System.out.println("Server: [leave] apply");
         return authService.applyLeave(userId, leaveType, startDate, endDate, totalDays, reason);
     }
 
     @Override
     public String getLeavesByUserId(String userId) throws RemoteException {
-        System.out.println("Server: Getting leaves for user - " + userId);
+        System.out.println("Server: [leave] history");
         return authService.getLeavesByUserId(userId);
     }
 
     @Override
     public String getLeaveBalance(String userId) throws RemoteException {
-        System.out.println("Server: Getting leave balance for user - " + userId);
+        System.out.println("Server: [leave] balance");
         return authService.getLeaveBalance(userId);
     }
 
     @Override
     public java.util.Map<String, Integer> getLeaveBalanceData(String userId) throws RemoteException {
-        System.out.println("Server: Getting leave balance data for user - " + userId);
+        System.out.println("Server: [leave] balance-data");
         return authService.getLeaveBalanceData(userId);
     }
 
     @Override
     public boolean checkAndResetLeaveBalance(String userId) throws RemoteException {
-        System.out.println("Server: Checking/resetting leave balance for user - " + userId);
+        System.out.println("Server: [leave] check-reset");
         return authService.checkAndResetLeaveBalance(userId);
     }
 
@@ -176,13 +176,13 @@ public class AuthServiceImpl extends UnicastRemoteObject implements AuthInterfac
 
     @Override
     public String approveLeave(String leaveId) throws RemoteException {
-        System.out.println("Server: Approving leave request - " + leaveId);
+        System.out.println("Server: [leave] approve");
         return authService.approveLeave(leaveId);
     }
 
     @Override
     public String rejectLeave(String leaveId) throws RemoteException {
-        System.out.println("Server: Rejecting leave request - " + leaveId);
+        System.out.println("Server: [leave] reject");
         return authService.rejectLeave(leaveId);
     }
 

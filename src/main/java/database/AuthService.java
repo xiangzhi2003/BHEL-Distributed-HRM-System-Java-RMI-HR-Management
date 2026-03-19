@@ -89,7 +89,7 @@ public class AuthService {
             java.io.File file = null;
             for (String path : pathsToCheck) {
                 java.io.File f = new java.io.File(path);
-                System.out.println("Checking for key at: " + f.getAbsolutePath());
+                // searching for serviceAccountKey.json
                 if (f.exists()) {
                     file = f;
                     break;
@@ -112,7 +112,7 @@ public class AuthService {
                 return;
             }
 
-            System.out.println("Found service account key at: " + file.getAbsolutePath());
+            System.out.println("✓ Service account key found");
 
             // Load credentials from service account file
             FileInputStream serviceAccount = new FileInputStream(file);
@@ -128,9 +128,9 @@ public class AuthService {
             }
 
             firebaseInitialized = true;
-            System.out.println("Firebase Admin SDK initialized successfully!");
+            System.out.println("✓ Firebase Admin ready");
         } catch (java.io.IOException | IllegalStateException e) {
-            System.out.println("Firebase Admin init error: " + e.getMessage());
+            System.out.println("✗ Firebase Admin SDK failed to initialize - check serviceAccountKey.json");
         }
     }
 
@@ -164,16 +164,39 @@ public class AuthService {
                 JsonObject json = JsonParser.parseString(response).getAsJsonObject();
                 return json.get("localId").getAsString();
             } else {
-                System.out.println("Login Failed. Response Code: " + conn.getResponseCode());
                 String error = readErrorResponse(conn);
-                System.out.println("Error Response: " + error);
+                String reason = parseFirebaseAuthError(error);
+                System.out.println("Login Failed [" + email + "]: " + reason);
                 return null;
             }
 
         } catch (Exception e) {
-            System.out.println("Auth Error: " + e.getMessage());
+            System.out.println("✗ Login error - could not reach authentication service");
             return null;
         }
+    }
+
+    /**
+     * Translates a Firebase Auth REST error response into a short human-readable reason.
+     */
+    private String parseFirebaseAuthError(String errorBody) {
+        try {
+            JsonObject root = JsonParser.parseString(errorBody).getAsJsonObject();
+            JsonObject err  = root.getAsJsonObject("error");
+            if (err != null) {
+                String code = err.get("message").getAsString();
+                switch (code) {
+                    case "INVALID_EMAIL":           return "Invalid email format";
+                    case "EMAIL_NOT_FOUND":         return "Email not registered";
+                    case "INVALID_PASSWORD":        return "Wrong password";
+                    case "INVALID_LOGIN_CREDENTIALS": return "Invalid email or password";
+                    case "USER_DISABLED":           return "Account is disabled";
+                    case "TOO_MANY_ATTEMPTS_TRY_LATER": return "Too many failed attempts — try later";
+                    default:                        return code;
+                }
+            }
+        } catch (Exception ignored) {}
+        return "Authentication failed";
     }
 
     /**
@@ -199,7 +222,7 @@ public class AuthService {
             return null;
 
         } catch (Exception e) {
-            System.out.println("Firestore Error: " + e.getMessage());
+            System.out.println("✗ Failed to retrieve user role from database");
             return null;
         }
     }
@@ -383,13 +406,12 @@ public class AuthService {
                 System.out.println("Leave Balance created for user: " + userId + " (Year: " + currentYear + ")");
                 return true;
             } else {
-                String error = readErrorResponse(conn);
-                System.out.println("Failed to create Leave Balance: " + error);
+                System.out.println("✗ Failed to initialize leave balance for user: " + userId);
                 return false;
             }
 
         } catch (Exception e) {
-            System.out.println("Create Leave Balance Error: " + e.getMessage());
+            System.out.println("✗ Failed to create leave balance - could not reach database");
             return false;
         }
     }
@@ -778,7 +800,7 @@ public class AuthService {
                             }
                         }
                     }
-                    System.out.println("Deleted " + deletedCount + " payroll entries for user " + userId);
+                    System.out.println("✓ Deleted " + deletedCount + " payroll entries");
                     return true;
                 }
             }
@@ -962,8 +984,6 @@ public class AuthService {
             JsonObject doc = new JsonObject();
             doc.add("fields", fields);
 
-            System.out.println("Document JSON: " + doc.toString());
-
             try (OutputStream os = createConn.getOutputStream()) {
                 os.write(doc.toString().getBytes(StandardCharsets.UTF_8));
             }
@@ -991,17 +1011,15 @@ public class AuthService {
                 emailService.sendEmail(emailToSave, subject, body);
                 return "SUCCESS"; // Indicates success
             } else {
-                System.out.println("✗ Failed to update profile in Firestore");
-                System.out.println("HTTP Response Code: " + code);
                 String errorResponse = readErrorResponse(createConn);
-                System.out.println("Error Response: " + errorResponse);
-                return "Error: Failed to update profile in database (HTTP " + code + ")";
+                String reason = parseFirebaseAuthError(errorResponse);
+                System.out.println("✗ Failed to update profile in Firestore: " + reason);
+                return "Error: Failed to update profile in database";
             }
 
         } catch (Exception e) {
-            System.out.println("✗ Update Own Profile Error: " + e.getMessage());
-            e.printStackTrace();
-            return "Error: An unexpected error occurred - " + e.getMessage();
+            System.out.println("✗ Update profile error - could not reach database");
+            return "Error: An unexpected error occurred, please try again";
         }
     }
 
@@ -1638,7 +1656,6 @@ public class AuthService {
                 // Get employee details for email
                 String employeeEmail = getEmployeeEmail(userId);
                 String employeeName = getEmployeeName(userId);
-                String employeeNameWithEmail = getEmployeeNameAndEmail(userId);
                 
                 // Send confirmation email to employee
                 if (employeeEmail != null) {
@@ -1693,11 +1710,8 @@ public class AuthService {
                     
                     // Send notification to all HR users
                     java.util.List<String> hrEmails = getAllHREmails();
-                    int hrNotified = 0;
                     for (String hrEmail : hrEmails) {
-                        if (emailService.sendEmail(hrEmail, hrSubject, hrBody)) {
-                            hrNotified++;
-                        }
+                        emailService.sendEmail(hrEmail, hrSubject, hrBody);
                     }
                 }
                 
@@ -1708,13 +1722,14 @@ public class AuthService {
                         "✓ Notification sent to HR team";
             } else {
                 String error = readErrorResponse(conn);
-                System.out.println("Firestore Error: " + error);
+                String errorReason = parseFirebaseAuthError(error);
+                System.out.println("✗ Failed to submit leave application: " + errorReason);
                 return "Failed to submit leave application. Please try again.";
             }
 
         } catch (Exception e) {
-            System.out.println("Apply Leave Error: " + e.getMessage());
-            return "Error: " + e.getMessage();
+            System.out.println("✗ Apply leave error - could not reach database");
+            return "Error: Failed to submit leave application. Please try again.";
         }
     }
 
@@ -1831,20 +1846,16 @@ public class AuthService {
             // Step 2: Check leave balance
             java.util.Map<String, Integer> balanceData = getLeaveBalanceData(userId);
             int currentBalance;
-            String balanceField;
 
             switch (leaveType.toLowerCase()) {
                 case "annual":
                     currentBalance = balanceData.get("annual");
-                    balanceField = "annual_leave";
                     break;
                 case "emergency":
                     currentBalance = balanceData.get("emergency");
-                    balanceField = "emergency_leave";
                     break;
                 case "medical":
                     currentBalance = balanceData.get("medical");
-                    balanceField = "medical_leave";
                     break;
                 default:
                     return "Invalid leave type: " + leaveType;
@@ -2258,9 +2269,8 @@ public class AuthService {
                    "Total requests processed: " + totalRequests;
 
         } catch (Exception e) {
-            System.out.println("Generate Report Error: " + e.getMessage());
-            e.printStackTrace();
-            return "Error generating report: " + e.getMessage();
+            System.out.println("✗ Failed to generate report - " + e.getMessage());
+            return "Error generating report. Please try again.";
         }
     }
 
